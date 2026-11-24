@@ -1205,6 +1205,7 @@ body.preview-mode #tiersPage input{
           <option value="order">Order date</option>
           <option value="deposit">Deposit date</option>
           <option value="full">Full payment date</option>
+          <option value="any-except">Any date except (only entries that have a date)</option>
         </select>
       </div>
       <div class="filter-field">
@@ -1931,9 +1932,16 @@ function setProfitCell(el, i, profit, total) {
 function summaryFiltersActive() {
   return !!(
     summaryFilters.search.trim() ||
+    summaryFilters.dateField ||
     summaryFilters.from ||
     summaryFilters.to
   );
+}
+
+function dateInRange(dv, from, to) {
+  if (from && dv < from) return false;
+  if (to && dv > to) return false;
+  return true;
 }
 
 function getFilteredEntries() {
@@ -1946,28 +1954,31 @@ function getFilteredEntries() {
   return state.entries.filter(e => {
     if (q && !String(e.name || '').toLowerCase().includes(q)) return false;
 
+    const dates = e.dates || {};
+    const vals = [dates.order, dates.deposit, dates.full].filter(Boolean);
+
+    /* "Any date except": the entry must have at least one date of any kind.
+       If a range is set, at least one of its dates must fall inside it. */
+    if (df === 'any-except') {
+      if (!vals.length) return false;
+      if (hasRange && !vals.some(dv => dateInRange(dv, from, to))) return false;
+      return true;
+    }
+
+    /* Specific date type: the entry must actually have that date, even when
+       no From/To range is set. */
+    if (df) {
+      const dv = dates[df] || '';
+      if (!dv) return false;
+      if (hasRange && !dateInRange(dv, from, to)) return false;
+      return true;
+    }
+
+    /* "Any date": show everything unless a range is set, in which case at
+       least one of the three dates must fall inside the range. */
     if (hasRange) {
-      const dates = e.dates || {};
-
-      if (df) {
-        /* Specific date type: must have that date within range */
-        const dv = dates[df] || '';
-        if (!dv) return false;
-        if (from && dv < from) return false;
-        if (to && dv > to) return false;
-      } else {
-        /* Any date: at least one of the three dates must be in range */
-        const vals = [dates.order, dates.deposit, dates.full].filter(Boolean);
-        if (!vals.length) return false;
-
-        const inRange = vals.some(dv => {
-          if (from && dv < from) return false;
-          if (to && dv > to) return false;
-          return true;
-        });
-
-        if (!inRange) return false;
-      }
+      if (!vals.length) return false;
+      if (!vals.some(dv => dateInRange(dv, from, to))) return false;
     }
 
     return true;
