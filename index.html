@@ -6,7 +6,6 @@
 <title>Quotation Calculator</title>
 <style>
 :root{
-  /* palette */
   --bg:#f6f7f9;
   --surface:#ffffff;
   --surface-2:#f8fafc;
@@ -25,7 +24,6 @@
   --danger-soft:#fef2f2;
   --danger-line:#fecaca;
   --success:#059669;
-  /* effects */
   --shadow-sm:0 1px 2px rgba(15,23,42,.05);
   --shadow-md:0 1px 3px rgba(15,23,42,.06),0 1px 2px rgba(15,23,42,.04);
   --shadow-lg:0 10px 30px rgba(15,23,42,.10),0 2px 6px rgba(15,23,42,.05);
@@ -223,7 +221,20 @@ input[type="text"],input[type="number"],input[type="search"],input[type="passwor
   transition:border-color .12s,box-shadow .12s;
 }
 input[type="number"]{text-align:right;font-variant-numeric:tabular-nums}
-input:focus{
+input[type="date"]{
+  min-height:34px;padding:5px 10px;
+  border:1px solid var(--line);border-radius:var(--r-sm);
+  background:var(--surface);font-size:13px;color:var(--ink);
+  font-variant-numeric:tabular-nums;
+  transition:border-color .12s,box-shadow .12s;
+}
+select{
+  min-height:34px;padding:6px 10px;
+  border:1px solid var(--line);border-radius:var(--r-sm);
+  background:var(--surface);font-size:13px;color:var(--ink);
+  transition:border-color .12s,box-shadow .12s;
+}
+input:focus,select:focus{
   outline:none;
   border-color:var(--accent);
   box-shadow:0 0 0 3px var(--accent-soft);
@@ -232,15 +243,17 @@ input:focus{
 /* =========================================================
    LAYOUT
    ========================================================= */
-#calculatorPage,#pricePage,#summaryPage{min-width:0;min-height:calc(100vh - 70px)}
-#pricePage{display:none;width:100%;padding:24px var(--gutter) 40px;max-width:1200px;margin:0 auto}
+#calculatorPage,#pricePage,#summaryPage,#tiersPage{min-width:0;min-height:calc(100vh - 70px)}
+#pricePage{display:none;width:100%;padding:24px var(--gutter) 100px;max-width:1200px;margin:0 auto}
 #pricePage .panel{width:100%}
 #summaryPage{display:none;width:100%;padding:24px var(--gutter) 100px}
 #summaryPage .panel{width:100%;max-width:1700px;margin:0 auto}
+#tiersPage{display:none;width:100%;padding:24px var(--gutter) 100px}
+#tiersPage .panel{width:100%;max-width:1200px;margin:0 auto}
 .wrap{
   display:flex;flex-direction:column;align-items:stretch;gap:16px;
   width:100%;max-width:1600px;
-  padding:24px var(--gutter) 40px;
+  padding:24px var(--gutter) 100px;
   margin:0 auto;
 }
 .panel{
@@ -263,12 +276,10 @@ input:focus{
   font-size:12.5px;color:var(--muted);
   margin:-2px 0 16px;line-height:1.6;
 }
-.tier-panel,#entries{width:100%;min-width:0}
-.tier-panel{order:1}
-#entries{order:2}
+#entries{width:100%;min-width:0}
 
 /* =========================================================
-   TIERS PANEL
+   TIERS PAGE
    ========================================================= */
 #tierGrid{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch}
 .tier-card{
@@ -418,6 +429,26 @@ input:focus{
   border-color:var(--accent);
   background:var(--surface);
   box-shadow:0 0 0 3px var(--accent-soft);
+}
+.entry-dates{
+  display:flex;flex-wrap:wrap;gap:8px 18px;
+  padding:10px 16px;
+  border-bottom:1px solid var(--line-2);
+  background:var(--surface);
+  align-items:center;
+}
+.date-field{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;color:var(--muted);font-weight:500;
+  min-width:0;
+}
+.date-field span{white-space:nowrap}
+.date-field input[type="date"]{
+  width:auto;min-width:128px;
+  min-height:30px;padding:3px 8px;font-size:12.5px;
+}
+.entry-dates .date-empty{
+  font-size:12px;color:var(--muted-2);font-style:italic;
 }
 .scroll,.table-scroll{
   overflow-x:auto;
@@ -630,9 +661,39 @@ table.tiers{
 }
 
 /* =========================================================
-   SUMMARY TABLE
+   SUMMARY PAGE
    ========================================================= */
 #summaryPage .panel{padding:20px}
+.summary-filters{
+  display:flex;flex-wrap:wrap;gap:10px 12px;
+  margin-bottom:14px;
+  padding:12px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:var(--r);
+}
+.filter-field{
+  display:flex;flex-direction:column;gap:4px;
+  min-width:0;flex:1 1 150px;
+}
+.filter-field.grow{flex:2 1 220px}
+.filter-field label{
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:var(--muted);
+  font-weight:600;
+}
+.filter-field input,.filter-field select{
+  width:100%;min-height:34px;
+  font-size:13px;
+}
+.summary-filters .mini{align-self:flex-end;min-height:34px}
+.summary-info{
+  font-size:12px;color:var(--muted);
+  margin-bottom:12px;
+}
+.summary-info b{color:var(--ink);font-weight:650}
 #summaryPage .table-scroll{
   border:1px solid var(--line);
   border-radius:var(--r);
@@ -650,6 +711,7 @@ table.tiers{
   font-size:12.5px;
   white-space:nowrap;
   color:var(--ink-2);
+  vertical-align:top;
 }
 .sum-table thead th{
   font-size:10px;
@@ -665,23 +727,30 @@ table.tiers{
   border-bottom:1px solid var(--line);
   font-weight:650;
 }
-.sum-table thead th small{
-  display:block;text-transform:none;letter-spacing:0;
-  color:var(--muted-2);font-weight:500;
-  font-size:10px;margin-top:2px;
-}
 .sum-table th:first-child,.sum-table td:first-child{
   text-align:left;
   position:sticky;left:0;z-index:1;
   background:var(--surface);
   box-shadow:1px 0 0 var(--line);
   font-weight:600;
+  white-space:normal;
+  min-width:130px;
 }
 .sum-table thead th:first-child{z-index:2;background:var(--surface-2)}
 .sum-table td.ename{font-weight:600;color:var(--ink)}
 .sum-table td.cost{color:var(--danger);font-weight:600}
 .sum-table td.profit{color:var(--success);font-weight:600}
 .sum-table td.profit.neg{color:var(--danger)}
+.ename-dates{
+  display:block;
+  font-size:10px;
+  color:var(--muted-2);
+  font-weight:500;
+  margin-top:3px;
+  line-height:1.5;
+  letter-spacing:0;
+}
+.ename-dates span{display:inline-block;margin-right:8px}
 .sum-table tr.grand-row td{
   background:var(--surface-3);
   border-top:2px solid var(--ink-2);
@@ -701,22 +770,25 @@ table.tiers{
 .sum-table tr.grand-row td.profit.neg{color:var(--danger)}
 
 /* =========================================================
-   SUMMARY CLOSE (fixed)
+   SCROLL TO TOP
    ========================================================= */
-.summary-close{
+.scroll-top{
   position:fixed;
-  right:24px;bottom:24px;z-index:60;
-  display:inline-flex;align-items:center;gap:8px;
-  min-height:42px;padding:9px 18px;
+  right:24px;bottom:24px;z-index:70;
+  width:44px;height:44px;
+  border-radius:50%;
   background:var(--ink);
   border:1px solid var(--ink);
   color:#fff;
-  border-radius:var(--r);
-  font-weight:600;font-size:13px;
+  padding:0;
+  display:none;
+  place-items:center;
   box-shadow:0 8px 24px rgba(15,23,42,.25),0 2px 6px rgba(15,23,42,.15);
+  cursor:pointer;
 }
-.summary-close:hover{background:#1e293b;border-color:#1e293b;color:#fff}
-.summary-close:active{transform:translateY(1px)}
+.scroll-top.visible{display:grid}
+.scroll-top:hover{background:#1e293b;border-color:#1e293b;color:#fff}
+.scroll-top:active{transform:translateY(1px)}
 
 /* =========================================================
    EMPTY STATE
@@ -920,16 +992,17 @@ body.preview-mode .actions [data-act]:not([data-act="print"]){display:none!impor
 body.preview-mode #calculatorPage .entry-head button,
 body.preview-mode #calculatorPage .entry-add-material,
 body.preview-mode #calculatorPage .items td button,
-body.preview-mode #calculatorPage .tier-card .del-tier,
-body.preview-mode #calculatorPage .tier-card .apply-tier,
-body.preview-mode #calculatorPage .tier-panel .add-tier,
+body.preview-mode #tiersPage .tier-card .del-tier,
+body.preview-mode #tiersPage .tier-card .apply-tier,
+body.preview-mode #tiersPage .add-tier,
 body.preview-mode #pricePage #catList .cat-row button,
 body.preview-mode #pricePage #catList .cat-block>.mini{display:none!important}
 body.preview-mode #calculatorPage .items th:nth-child(7),
 body.preview-mode #calculatorPage .items td:nth-child(7){display:none!important}
 body.preview-mode #pricePage #catList .cat-row{grid-template-columns:minmax(0,1fr) minmax(90px,130px)!important}
 body.preview-mode #calculatorPage input:not(#globalSearch),
-body.preview-mode #pricePage input{
+body.preview-mode #pricePage input,
+body.preview-mode #tiersPage input{
   background:var(--surface-2)!important;
   color:var(--muted)!important;
   cursor:default;
@@ -960,8 +1033,13 @@ body.preview-mode #pricePage input{
   .brand h1{font-size:15px}
   .mode-indicator{justify-self:start}
   .search-wrap{order:0;width:100%;max-width:none}
-  .page-nav{order:0;width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
-  .page-nav button{width:100%;min-width:0;min-height:36px;padding:6px 4px;font-size:12px}
+  .page-nav{
+    order:0;width:100%;
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:0;
+  }
+  .page-nav button{width:100%;min-width:0;min-height:36px;padding:6px 3px;font-size:11.5px}
   .actions{
     order:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
     width:100%;margin:0;gap:6px;
@@ -971,10 +1049,14 @@ body.preview-mode #pricePage input{
     padding:6px 5px;font-size:12px;
     white-space:normal;line-height:1.2;
   }
-  .wrap{padding:12px 12px 32px;gap:12px}
+  .wrap{padding:12px 12px 90px;gap:12px}
   .panel{padding:14px;border-radius:var(--r-lg)}
-  #summaryPage{padding:12px 12px 96px}
-  #summaryPage .panel{padding:14px}
+  #summaryPage,#tiersPage,#pricePage{padding:12px 12px 90px}
+  #summaryPage .panel,#tiersPage .panel,#pricePage .panel{padding:14px}
+  .summary-filters{gap:8px}
+  .filter-field{flex:1 1 130px}
+  .filter-field.grow{flex:1 1 100%}
+  .summary-filters .mini{flex:1 1 100%;align-self:stretch}
   .sum-table th,.sum-table td{padding:9px 10px;font-size:12px}
   #tierGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   .tier-card{min-width:0;padding:10px}
@@ -986,6 +1068,9 @@ body.preview-mode #pricePage input{
   .entry-name{width:100%;flex:1 1 100%;font-size:15px}
   .entry-head .spacer{display:none}
   .entry-head button{flex:1 1 calc(33.333% - 6px);min-width:0;min-height:32px;padding:4px;font-size:11.5px}
+  .entry-dates{padding:9px 12px;gap:6px 12px}
+  .date-field{flex:1 1 calc(50% - 6px);min-width:0}
+  .date-field input[type="date"]{width:100%;min-width:0}
   .scroll table.items{min-width:620px}
   .scroll table.tiers{min-width:680px}
   .entry-add-material{margin:10px 12px 0;padding:0}
@@ -994,36 +1079,34 @@ body.preview-mode #pricePage input{
   .calc{padding:12px}
   .bases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
   .bases span{min-width:0;padding:7px 9px;font-size:11.5px;flex-direction:column;align-items:flex-start;gap:2px}
-  #pricePage{padding:12px}
-  #pricePage .panel{padding:14px}
   #pricePage .cat-block{padding:12px}
   #pricePage .cat-row{grid-template-columns:minmax(0,1fr) 90px 32px;gap:6px}
   .picker-backdrop{padding:8px;align-items:flex-end}
   .picker-dialog{width:100%;max-height:88dvh;border-radius:var(--r-xl) var(--r-xl) 8px 8px}
   .developer-dialog{padding:20px}
   .developer-dialog-actions button{flex:1}
-  .summary-close{right:12px;bottom:12px;padding:9px 15px;min-height:40px;font-size:12.5px}
+  .scroll-top{right:12px;bottom:12px;width:40px;height:40px}
 }
 @media(max-width:420px){
   body{font-size:13px}
   .topbar{padding:11px 12px;gap:9px}
   .brand h1{font-size:14px}
   .brand-mark{width:26px;height:26px;font-size:11px}
-  .page-nav button{font-size:11px;padding:5px 3px}
+  .page-nav{grid-template-columns:repeat(2,minmax(0,1fr));gap:0}
+  .page-nav button{font-size:11.5px;padding:6px 4px}
   .actions{grid-template-columns:repeat(2,minmax(0,1fr))}
   .actions button,.actions .filebtn{font-size:11.5px}
-  .wrap{padding:10px 10px 28px;gap:10px}
+  .wrap{padding:10px 10px 88px;gap:10px}
   .panel{padding:12px}
+  #summaryPage,#tiersPage,#pricePage{padding:10px 10px 88px}
   #tierGrid{grid-template-columns:minmax(0,1fr)}
   .tier-card{padding:10px}
   .tier-mult input{width:78px}
   .entry-head button{font-size:11px}
+  .date-field{flex:1 1 100%}
   .bases{grid-template-columns:minmax(0,1fr)}
-  #pricePage{padding:10px}
-  #pricePage .panel{padding:12px}
   #pricePage .cat-row{grid-template-columns:minmax(0,1fr) 74px 30px;gap:5px}
   #pricePage .cat-row input{padding:5px;font-size:12px}
-  #summaryPage{padding:10px 10px 92px}
   .picker-head{padding:12px 14px}
   .picker-search{padding:10px 14px}
   .picker-list{padding:8px 14px 16px}
@@ -1042,12 +1125,12 @@ body.preview-mode #pricePage input{
 }
 @media print{
   .topbar,#catalog,.search-status,.entry-head button,.entry-hint,
-  .items th:nth-child(7),.items td:nth-child(7),.del,.tier-panel,
+  .items th:nth-child(7),.items td:nth-child(7),.del,
   .apply-tier,.page-nav,.entry-add-material,#pricePage,.picker-backdrop,
-  .summary-close{display:none!important}
+  .scroll-top,.summary-filters{display:none!important}
   body{background:#fff}
   .wrap{display:block;padding:0;max-width:none}
-  #summaryPage{padding:0}
+  #summaryPage,#tiersPage{padding:0}
   .entry,.panel{
     break-inside:avoid;
     border:1px solid #cbd5e1;
@@ -1075,6 +1158,7 @@ body.preview-mode #pricePage input{
   <nav class="page-nav" aria-label="Main sections">
     <button type="button" data-page="calculator" aria-current="page">Calculator</button>
     <button type="button" data-page="summary">Summary</button>
+    <button type="button" data-page="tiers">Tiers</button>
     <button type="button" data-page="price">Price List</button>
   </nav>
 
@@ -1105,12 +1189,6 @@ body.preview-mode #pricePage input{
 
 <div id="calculatorPage">
 <div class="wrap">
-  <section class="panel tier-panel">
-    <h2>Tiers</h2>
-    <p class="hint">Global tier <b>names</b> and default multipliers. Each entry has its own copy of the multipliers — edit them directly in the entry's tier table. Use <b>Apply to all entries</b> to push a default onto every entry.</p>
-    <div id="tierGrid"></div>
-  </section>
-
   <section id="entries"></section>
 </div>
 </div>
@@ -1118,6 +1196,34 @@ body.preview-mode #pricePage input{
 <section id="summaryPage">
   <div class="panel">
     <h2>Summary — full report (total cost, sell price &amp; profit per tier)</h2>
+
+    <div class="summary-filters">
+      <div class="filter-field grow">
+        <label for="sumSearch">Entry filter</label>
+        <input id="sumSearch" type="search" placeholder="Filter by entry name or number" autocomplete="off">
+      </div>
+      <div class="filter-field">
+        <label for="sumDateField">Date type</label>
+        <select id="sumDateField">
+          <option value="">Any date</option>
+          <option value="order">Order date</option>
+          <option value="deposit">Deposit date</option>
+          <option value="full">Full payment date</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <label for="sumFrom">From</label>
+        <input id="sumFrom" type="date">
+      </div>
+      <div class="filter-field">
+        <label for="sumTo">To</label>
+        <input id="sumTo" type="date">
+      </div>
+      <button type="button" class="mini" data-act="clear-sum-filters">Clear filters</button>
+    </div>
+
+    <div class="summary-info" id="summaryInfo"></div>
+
     <div class="table-scroll">
       <table class="sum-table">
         <thead id="summary-head"></thead>
@@ -1125,11 +1231,14 @@ body.preview-mode #pricePage input{
       </table>
     </div>
   </div>
+</section>
 
-  <button type="button" class="summary-close" data-page="calculator" aria-label="Close summary and return to calculator">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
-    Close summary
-  </button>
+<section id="tiersPage">
+  <div class="panel">
+    <h2>Tiers</h2>
+    <p class="hint">Global tier <b>names</b> and default multipliers. Each entry has its own copy of the multipliers — edit them directly in the entry's tier table. Use <b>Apply to all entries</b> to push a default onto every entry.</p>
+    <div id="tierGrid"></div>
+  </div>
 </section>
 
 <section id="pricePage">
@@ -1139,6 +1248,10 @@ body.preview-mode #pricePage input{
     <div id="catList"></div>
   </div>
 </section>
+
+<button type="button" class="scroll-top" id="scrollTop" aria-label="Scroll back to top">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
 
 <div class="picker-backdrop" id="materialPicker" role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
   <div class="picker-dialog">
@@ -1185,6 +1298,13 @@ const money = n => 'RM' + nf.format(round2(num(n)));
 const fmtMult = n => String(Math.round(num(n) * 1000) / 1000);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+const emptyDates = () => ({ order: '', deposit: '', full: '' });
+const normalizeDates = d => ({
+  order: (d && d.order) || '',
+  deposit: (d && d.deposit) || '',
+  full: (d && d.full) || ''
+});
+
 const DEFAULT_CATALOG = {
   wood: [],
   accessory: [],
@@ -1215,12 +1335,11 @@ const multsFromTiers = tiers => tiers.map(t => ({
 /* =========================================================
    State
    ========================================================= */
-/* The app always opens empty: nothing is restored from the browser.
-   Data only appears after a JSON file is loaded. */
 try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
 
 let state = seed();
 let searchQuery = '';
+let summaryFilters = { search: '', dateField: '', from: '', to: '' };
 
 const DEVELOPER_PASSWORD = '7412365';
 let developerMode = false;
@@ -1235,11 +1354,11 @@ function seed() {
   };
 }
 
-/* Persistence is intentionally disabled so every visit starts clean. */
 function saveState() {}
 
 function ensureEntryTiers(entry) {
   if (!Array.isArray(entry.tiers)) entry.tiers = [];
+  if (!entry.dates || typeof entry.dates !== 'object') entry.dates = emptyDates();
 
   state.tiers.forEach((t, i) => {
     const cur = entry.tiers[i];
@@ -1279,7 +1398,7 @@ function syncEditorMode() {
   );
 
   document.querySelectorAll(
-    '#calculatorPage input:not(#globalSearch), #pricePage input'
+    '#calculatorPage input:not(#globalSearch), #pricePage input, #tiersPage input'
   ).forEach(input => {
     input.readOnly = locked;
     input.setAttribute('aria-readonly', String(locked));
@@ -1316,13 +1435,12 @@ function compareEntries(a, b) {
   const na = entryNumber(a.name);
   const nb = entryNumber(b.name);
 
-  if (na !== null && nb !== null) return nb - na;  /* higher number on top */
-  if (na !== null) return -1;                      /* numbered entries above text */
+  if (na !== null && nb !== null) return nb - na;
+  if (na !== null) return -1;
   if (nb !== null) return 1;
   return String(a.name ?? '').localeCompare(String(b.name ?? ''));
 }
 
-/* Re-order the rendered cards in place (keeps focus inside the renamed input) */
 function reorderEntryNodes() {
   const container = document.getElementById('entries');
   if (!container) return;
@@ -1454,9 +1572,15 @@ function renderMaterialPicker(query) {
 }
 
 function switchPage(page) {
-  const target = page === 'price' ? 'pricePage' : page === 'summary' ? 'summaryPage' : 'calculatorPage';
+  const map = {
+    calculator: 'calculatorPage',
+    summary: 'summaryPage',
+    tiers: 'tiersPage',
+    price: 'pricePage'
+  };
+  const target = map[page] || 'calculatorPage';
 
-  ['calculatorPage', 'pricePage', 'summaryPage'].forEach(id => {
+  ['calculatorPage', 'summaryPage', 'tiersPage', 'pricePage'].forEach(id => {
     document.getElementById(id).style.display =
       id === target ? 'block' : 'none';
   });
@@ -1470,6 +1594,7 @@ function switchPage(page) {
   });
 
   if (page === 'price') renderCatalog();
+  if (page === 'summary') renderSummary();
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1515,6 +1640,24 @@ function itemRowHTML(it) {
       <td><button class="del" data-act="del-item"
         data-item="${it.id}" title="Remove row">✕</button></td>
     </tr>
+  `;
+}
+
+function dateStripHTML(entry) {
+  const d = entry.dates || emptyDates();
+  const field = (key, label) => `
+    <label class="date-field">
+      <span>${label}</span>
+      <input type="date" data-entry-date="${key}" data-entry-id="${entry.id}"
+        value="${esc(d[key] || '')}" aria-label="${label}">
+    </label>
+  `;
+  return `
+    <div class="entry-dates">
+      ${field('order', 'Order date')}
+      ${field('deposit', 'Deposit date')}
+      ${field('full', 'Full payment date')}
+    </div>
   `;
 }
 
@@ -1577,6 +1720,8 @@ function entryHTML(entry) {
         <button class="danger" data-act="del-entry"
           data-entry="${entry.id}" aria-label="Delete entry">✕</button>
       </div>
+
+      ${dateStripHTML(entry)}
 
       <div class="scroll">
         <table class="items">
@@ -1683,17 +1828,9 @@ function renderEntries() {
 }
 
 /* =========================================================
-   Calculation and summary
+   Calculation
    ========================================================= */
 function recalc() {
-  const grand = {
-    wood: 0,
-    accessory: 0,
-    other: 0,
-    cost: 0,
-    tiers: state.tiers.map(() => ({ price: 0, profit: 0 }))
-  };
-
   for (const entry of state.entries) {
     ensureEntryTiers(entry);
 
@@ -1757,9 +1894,6 @@ function recalc() {
       entry._tiers.push(tot);
       entry._profits.push(profit);
 
-      grand.tiers[i].price = round2(grand.tiers[i].price + tot);
-      grand.tiers[i].profit = round2(grand.tiers[i].profit + profit);
-
       if (el) {
         setTierCell(el, i, 'wood', w);
         setTierCell(el, i, 'accessory', a);
@@ -1768,14 +1902,9 @@ function recalc() {
         setProfitCell(el, i, profit, tot);
       }
     });
-
-    grand.wood = round2(grand.wood + bases.wood);
-    grand.accessory = round2(grand.accessory + bases.accessory);
-    grand.other = round2(grand.other + bases.other);
-    grand.cost = round2(grand.cost + cost);
   }
 
-  renderSummary(grand);
+  renderSummary();
 }
 
 function setTierCell(el, i, cat, val) {
@@ -1800,9 +1929,82 @@ function setProfitCell(el, i, profit, total) {
     `${money(profit)}<small>${pct.toFixed(1)}% margin</small>`;
 }
 
-function renderSummary(grand) {
+/* =========================================================
+   Summary (filtered)
+   ========================================================= */
+function summaryFiltersActive() {
+  return !!(
+    summaryFilters.search.trim() ||
+    (summaryFilters.dateField && (summaryFilters.from || summaryFilters.to))
+  );
+}
+
+function getFilteredEntries() {
+  const q = summaryFilters.search.trim().toLowerCase();
+  const df = summaryFilters.dateField;
+  const from = summaryFilters.from;
+  const to = summaryFilters.to;
+
+  return state.entries.filter(e => {
+    if (q && !String(e.name || '').toLowerCase().includes(q)) return false;
+
+    if (df && (from || to)) {
+      const dv = (e.dates && e.dates[df]) || '';
+      if (!dv) return false;
+      if (from && dv < from) return false;
+      if (to && dv > to) return false;
+    }
+
+    return true;
+  });
+}
+
+function summaryDatesLine(e) {
+  const d = e.dates || {};
+  const parts = [];
+  if (d.order) parts.push(`Order ${esc(d.order)}`);
+  if (d.deposit) parts.push(`Deposit ${esc(d.deposit)}`);
+  if (d.full) parts.push(`Full ${esc(d.full)}`);
+  return parts.length
+    ? `<small class="ename-dates">${parts.map(p => `<span>${p}</span>`).join('')}</small>`
+    : '';
+}
+
+function renderSummary() {
   const head = document.getElementById('summary-head');
   const body = document.getElementById('summary-body');
+  const info = document.getElementById('summaryInfo');
+
+  const allCount = state.entries.length;
+  const filtered = getFilteredEntries().sort(compareEntries);
+
+  /* Grand totals over the filtered set only */
+  const grand = {
+    wood: 0, accessory: 0, other: 0, cost: 0,
+    tiers: state.tiers.map(() => ({ price: 0, profit: 0 }))
+  };
+
+  for (const e of filtered) {
+    grand.wood = round2(grand.wood + (e._bases?.wood || 0));
+    grand.accessory = round2(grand.accessory + (e._bases?.accessory || 0));
+    grand.other = round2(grand.other + (e._bases?.other || 0));
+    grand.cost = round2(grand.cost + (e._cost || 0));
+
+    (e._tiers || []).forEach((v, i) => {
+      grand.tiers[i].price = round2(grand.tiers[i].price + v);
+    });
+    (e._profits || []).forEach((v, i) => {
+      grand.tiers[i].profit = round2(grand.tiers[i].profit + v);
+    });
+  }
+
+  if (info) {
+    if (summaryFiltersActive()) {
+      info.innerHTML = `Showing <b>${filtered.length}</b> of <b>${allCount}</b> entries — grand total reflects only the filtered entries.`;
+    } else {
+      info.innerHTML = `Showing all <b>${allCount}</b> entries.`;
+    }
+  }
 
   const cols = 5 + state.tiers.length * 2;
 
@@ -1822,10 +2024,9 @@ function renderSummary(grand) {
     </tr>
   `;
 
-  /* Grand total row — always the first row, above every entry */
   const grandRow = `
     <tr class="grand-row">
-      <td>Grand total</td>
+      <td>Grand total${summaryFiltersActive() ? ' (filtered)' : ''}</td>
       <td>${money(grand.wood)}</td>
       <td>${money(grand.accessory)}</td>
       <td>${money(grand.other)}</td>
@@ -1837,16 +2038,15 @@ function renderSummary(grand) {
     </tr>
   `;
 
-  if (!state.entries.length) {
+  if (!filtered.length) {
     body.innerHTML =
-      grandRow + `<tr><td colspan="${cols}" class="empty">No entries yet.</td></tr>`;
+      grandRow + `<tr><td colspan="${cols}" class="empty">No entries to show${summaryFiltersActive() ? ' for the current filters' : ' yet'}.</td></tr>`;
     return;
   }
 
-  /* Same order as the calculator: highest product number first */
-  body.innerHTML = grandRow + [...state.entries].sort(compareEntries).map(e => `
+  body.innerHTML = grandRow + filtered.map(e => `
     <tr>
-      <td class="ename">${esc(e.name)}</td>
+      <td class="ename">${esc(e.name)}${summaryDatesLine(e)}</td>
       <td>${money(e._bases?.wood || 0)}</td>
       <td>${money(e._bases?.accessory || 0)}</td>
       <td>${money(e._bases?.other || 0)}</td>
@@ -1865,6 +2065,35 @@ function renderSummary(grand) {
 }
 
 /* =========================================================
+   Summary filter inputs
+   ========================================================= */
+const sumSearch = document.getElementById('sumSearch');
+const sumDateField = document.getElementById('sumDateField');
+const sumFrom = document.getElementById('sumFrom');
+const sumTo = document.getElementById('sumTo');
+
+function readSummaryFilters() {
+  summaryFilters.search = sumSearch.value;
+  summaryFilters.dateField = sumDateField.value;
+  summaryFilters.from = sumFrom.value;
+  summaryFilters.to = sumTo.value;
+}
+
+[sumSearch, sumDateField, sumFrom, sumTo].forEach(el => {
+  el.addEventListener('input', () => { readSummaryFilters(); renderSummary(); });
+  el.addEventListener('change', () => { readSummaryFilters(); renderSummary(); });
+});
+
+function clearSummaryFilters() {
+  sumSearch.value = '';
+  sumDateField.value = '';
+  sumFrom.value = '';
+  sumTo.value = '';
+  readSummaryFilters();
+  renderSummary();
+}
+
+/* =========================================================
    Lookups
    ========================================================= */
 const findEntry = id => state.entries.find(e => e.id === id);
@@ -1874,7 +2103,6 @@ function findItem(id) {
     const it = e.items.find(x => x.id === id);
     if (it) return it;
   }
-
   return null;
 }
 
@@ -1942,12 +2170,23 @@ function handleEdit(ev) {
     saveState();
     recalc();
 
-    /* Only re-sort after the name is committed (Enter or blur),
-       so the card stays put while the user is still typing. */
     if (ev.type === 'change') {
       reorderEntryNodes();
     }
+    return;
+  }
 
+  if (t.matches('[data-entry-date]')) {
+    const e = findEntry(t.dataset.entryId);
+    if (!e) return;
+    ensureEntryTiers(e);
+
+    const key = t.dataset.entryDate;
+    if (!['order', 'deposit', 'full'].includes(key)) return;
+
+    e.dates[key] = t.value || '';
+    saveState();
+    renderSummary();
     return;
   }
 
@@ -2021,11 +2260,23 @@ function clearSearch() {
 }
 
 /* =========================================================
+   Scroll to top button
+   ========================================================= */
+const scrollTopBtn = document.getElementById('scrollTop');
+
+function syncScrollTopBtn() {
+  scrollTopBtn.classList.toggle('visible', window.scrollY > 300);
+}
+
+window.addEventListener('scroll', syncScrollTopBtn, { passive: true });
+scrollTopBtn.addEventListener('click', () => {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+/* =========================================================
    Keyboard: commit entry-name with Enter, plus global shortcuts
    ========================================================= */
 document.addEventListener('keydown', ev => {
-  /* Enter on an entry-name input commits the name and re-sorts the card.
-     The card stays in its current place while the user is still typing. */
   if (
     ev.key === 'Enter' &&
     developerMode &&
@@ -2061,9 +2312,7 @@ document.addEventListener('keydown', ev => {
    Click actions
    ========================================================= */
 document.addEventListener('click', ev => {
-  /* Page switching also handles the fixed "Close summary" button */
-  const pageButton = ev.target.closest('[data-page]');
-
+  const pageButton = ev.target.closest('.page-nav [data-page]');
   if (pageButton) {
     switchPage(pageButton.dataset.page);
     return;
@@ -2082,11 +2331,17 @@ document.addEventListener('click', ev => {
   if (
     !developerMode &&
     act !== 'clear-search' &&
+    act !== 'clear-sum-filters' &&
     act !== 'print'
   ) return;
 
   if (act === 'clear-search') {
     clearSearch();
+    return;
+  }
+
+  if (act === 'clear-sum-filters') {
+    clearSummaryFilters();
     return;
   }
 
@@ -2164,6 +2419,7 @@ document.addEventListener('click', ev => {
     const e = {
       id: uid('e'),
       name: String(state.nextNum).padStart(4, '0'),
+      dates: emptyDates(),
       items: [],
       tiers: multsFromTiers(state.tiers)
     };
@@ -2200,6 +2456,7 @@ document.addEventListener('click', ev => {
     const copy = {
       id: uid('e'),
       name: String(state.nextNum).padStart(4, '0'),
+      dates: normalizeDates(e.dates),
       items: e.items.map(i => ({ ...i, id: uid('i') })),
       tiers: clone(e.tiers || multsFromTiers(state.tiers))
     };
@@ -2244,6 +2501,7 @@ document.addEventListener('click', ev => {
       target = {
         id: uid('e'),
         name: String(state.nextNum).padStart(4, '0'),
+        dates: emptyDates(),
         items: [],
         tiers: multsFromTiers(state.tiers)
       };
@@ -2274,9 +2532,7 @@ document.addEventListener('click', ev => {
 
   else if (act === 'del-cat') {
     const { cat } = btn.dataset;
-
     state.catalog[cat].splice(+btn.dataset.idx, 1);
-
     renderCatalog();
     saveState();
   }
@@ -2286,7 +2542,6 @@ document.addEventListener('click', ev => {
       name: 'New material',
       price: 0
     });
-
     renderCatalog();
     saveState();
   }
@@ -2310,6 +2565,7 @@ document.addEventListener('click', ev => {
     state = seed();
 
     clearSearch();
+    clearSummaryFilters();
     renderAll();
   }
 });
@@ -2330,7 +2586,6 @@ const dateStamp = () => new Date().toISOString().slice(0, 10);
 
 function csvCell(v) {
   const s = String(v ?? '');
-
   return /[",\n]/.test(s)
     ? '"' + s.replace(/"/g, '""') + '"'
     : s;
@@ -2341,14 +2596,18 @@ function exportCSV() {
   const sortedEntries = [...state.entries].sort(compareEntries);
 
   rows.push([
-    'Entry', 'Category', 'Description',
-    'Unit cost', 'Qty', '%', 'Line cost'
+    'Entry', 'Order date', 'Deposit date', 'Full payment date',
+    'Category', 'Description', 'Unit cost', 'Qty', '%', 'Line cost'
   ]);
 
   for (const e of sortedEntries) {
+    const d = e.dates || {};
     for (const it of e.items) {
       rows.push([
         e.name,
+        d.order || '',
+        d.deposit || '',
+        d.full || '',
         CAT_LABEL[it.cat],
         it.desc,
         num(it.price),
@@ -2363,8 +2622,8 @@ function exportCSV() {
   rows.push(['Summary']);
 
   rows.push([
-    'Entry', 'Wood cost', 'Accessory cost',
-    'Other cost', 'Total cost',
+    'Entry', 'Order date', 'Deposit date', 'Full payment date',
+    'Wood cost', 'Accessory cost', 'Other cost', 'Total cost',
     ...state.tiers.map(t => `${t.label} sell price`),
     ...state.tiers.map(t => `${t.label} profit`)
   ]);
@@ -2373,16 +2632,19 @@ function exportCSV() {
   const grandProfit = state.tiers.map(() => 0);
 
   for (const e of sortedEntries) {
+    const d = e.dates || {};
     (e._tiers || []).forEach((v, i) => {
       grand[i] = round2(grand[i] + v);
     });
-
     (e._profits || []).forEach((v, i) => {
       grandProfit[i] = round2(grandProfit[i] + v);
     });
 
     rows.push([
       e.name,
+      d.order || '',
+      d.deposit || '',
+      d.full || '',
       round2(e._bases?.wood || 0),
       round2(e._bases?.accessory || 0),
       round2(e._bases?.other || 0),
@@ -2397,7 +2659,7 @@ function exportCSV() {
   );
 
   rows.push([
-    'Grand total', '', '', '', costTotal,
+    'Grand total', '', '', '', '', '', '', costTotal,
     ...grand.map(v => round2(v)),
     ...grandProfit.map(v => round2(v))
   ]);
@@ -2418,6 +2680,7 @@ function exportJSON() {
 
     entries: state.entries.map(e => ({
       name: e.name,
+      dates: normalizeDates(e.dates),
       tiers: e.tiers,
       items: e.items.map(i => ({
         cat: i.cat,
@@ -2460,6 +2723,7 @@ document.getElementById('fileInput').addEventListener('change', ev => {
         const entry = {
           id: uid('e'),
           name: e.name || 'Entry',
+          dates: normalizeDates(e.dates),
 
           items: (e.items || []).map(i => ({
             id: uid('i'),
@@ -2561,6 +2825,7 @@ document.addEventListener('keydown', ev => {
    ========================================================= */
 renderAll();
 setDeveloperMode(false);
+syncScrollTopBtn();
 </script>
 </body>
 </html>
