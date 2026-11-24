@@ -447,9 +447,6 @@ input:focus,select:focus{
   width:auto;min-width:128px;
   min-height:30px;padding:3px 8px;font-size:12.5px;
 }
-.entry-dates .date-empty{
-  font-size:12px;color:var(--muted-2);font-style:italic;
-}
 .scroll,.table-scroll{
   overflow-x:auto;
   -webkit-overflow-scrolling:touch;
@@ -727,6 +724,7 @@ table.tiers{
   border-bottom:1px solid var(--line);
   font-weight:650;
 }
+.sum-table th.date-col{text-align:left}
 .sum-table th:first-child,.sum-table td:first-child{
   text-align:left;
   position:sticky;left:0;z-index:1;
@@ -741,16 +739,13 @@ table.tiers{
 .sum-table td.cost{color:var(--danger);font-weight:600}
 .sum-table td.profit{color:var(--success);font-weight:600}
 .sum-table td.profit.neg{color:var(--danger)}
-.ename-dates{
-  display:block;
-  font-size:10px;
-  color:var(--muted-2);
+.sum-table td.sum-date{
+  text-align:left;
+  color:var(--ink-2);
+  font-size:11.5px;
   font-weight:500;
-  margin-top:3px;
-  line-height:1.5;
-  letter-spacing:0;
 }
-.ename-dates span{display:inline-block;margin-right:8px}
+.sum-table td.sum-date.is-empty{color:var(--muted-2)}
 .sum-table tr.grand-row td{
   background:var(--surface-3);
   border-top:2px solid var(--ink-2);
@@ -768,6 +763,7 @@ table.tiers{
 .sum-table tr.grand-row td.cost{color:var(--danger)}
 .sum-table tr.grand-row td.profit{color:var(--success)}
 .sum-table tr.grand-row td.profit.neg{color:var(--danger)}
+.sum-table tr.grand-row td.sum-date{background:var(--surface-3)}
 
 /* =========================================================
    SCROLL TO TOP
@@ -1424,7 +1420,7 @@ function closeDeveloperModal() {
 }
 
 /* =========================================================
-   Sorting (highest product number first, lowest last)
+   Sorting
    ========================================================= */
 function entryNumber(name) {
   const m = String(name ?? '').trim().match(/^\d+/);
@@ -1935,7 +1931,8 @@ function setProfitCell(el, i, profit, total) {
 function summaryFiltersActive() {
   return !!(
     summaryFilters.search.trim() ||
-    (summaryFilters.dateField && (summaryFilters.from || summaryFilters.to))
+    summaryFilters.from ||
+    summaryFilters.to
   );
 }
 
@@ -1944,30 +1941,37 @@ function getFilteredEntries() {
   const df = summaryFilters.dateField;
   const from = summaryFilters.from;
   const to = summaryFilters.to;
+  const hasRange = !!(from || to);
 
   return state.entries.filter(e => {
     if (q && !String(e.name || '').toLowerCase().includes(q)) return false;
 
-    if (df && (from || to)) {
-      const dv = (e.dates && e.dates[df]) || '';
-      if (!dv) return false;
-      if (from && dv < from) return false;
-      if (to && dv > to) return false;
+    if (hasRange) {
+      const dates = e.dates || {};
+
+      if (df) {
+        /* Specific date type: must have that date within range */
+        const dv = dates[df] || '';
+        if (!dv) return false;
+        if (from && dv < from) return false;
+        if (to && dv > to) return false;
+      } else {
+        /* Any date: at least one of the three dates must be in range */
+        const vals = [dates.order, dates.deposit, dates.full].filter(Boolean);
+        if (!vals.length) return false;
+
+        const inRange = vals.some(dv => {
+          if (from && dv < from) return false;
+          if (to && dv > to) return false;
+          return true;
+        });
+
+        if (!inRange) return false;
+      }
     }
 
     return true;
   });
-}
-
-function summaryDatesLine(e) {
-  const d = e.dates || {};
-  const parts = [];
-  if (d.order) parts.push(`Order ${esc(d.order)}`);
-  if (d.deposit) parts.push(`Deposit ${esc(d.deposit)}`);
-  if (d.full) parts.push(`Full ${esc(d.full)}`);
-  return parts.length
-    ? `<small class="ename-dates">${parts.map(p => `<span>${p}</span>`).join('')}</small>`
-    : '';
 }
 
 function renderSummary() {
@@ -2006,11 +2010,14 @@ function renderSummary() {
     }
   }
 
-  const cols = 5 + state.tiers.length * 2;
+  const cols = 8 + state.tiers.length * 2;
 
   head.innerHTML = `
     <tr>
       <th rowspan="2">Entry</th>
+      <th rowspan="2" class="date-col">Order date</th>
+      <th rowspan="2" class="date-col">Deposit date</th>
+      <th rowspan="2" class="date-col">Full payment date</th>
       <th colspan="4">Cost breakdown</th>
       ${state.tiers.map(t =>
         `<th colspan="2">${esc(t.label)}</th>`
@@ -2027,6 +2034,9 @@ function renderSummary() {
   const grandRow = `
     <tr class="grand-row">
       <td>Grand total${summaryFiltersActive() ? ' (filtered)' : ''}</td>
+      <td class="sum-date is-empty"></td>
+      <td class="sum-date is-empty"></td>
+      <td class="sum-date is-empty"></td>
       <td>${money(grand.wood)}</td>
       <td>${money(grand.accessory)}</td>
       <td>${money(grand.other)}</td>
@@ -2044,24 +2054,35 @@ function renderSummary() {
     return;
   }
 
-  body.innerHTML = grandRow + filtered.map(e => `
-    <tr>
-      <td class="ename">${esc(e.name)}${summaryDatesLine(e)}</td>
-      <td>${money(e._bases?.wood || 0)}</td>
-      <td>${money(e._bases?.accessory || 0)}</td>
-      <td>${money(e._bases?.other || 0)}</td>
-      <td class="cost">${money(e._cost || 0)}</td>
+  body.innerHTML = grandRow + filtered.map(e => {
+    const d = e.dates || {};
+    const dateCell = v =>
+      v
+        ? `<td class="sum-date">${esc(v)}</td>`
+        : `<td class="sum-date is-empty">—</td>`;
 
-      ${state.tiers.map((_, i) => {
-        const p = (e._profits || [])[i] || 0;
+    return `
+      <tr>
+        <td class="ename">${esc(e.name)}</td>
+        ${dateCell(d.order)}
+        ${dateCell(d.deposit)}
+        ${dateCell(d.full)}
+        <td>${money(e._bases?.wood || 0)}</td>
+        <td>${money(e._bases?.accessory || 0)}</td>
+        <td>${money(e._bases?.other || 0)}</td>
+        <td class="cost">${money(e._cost || 0)}</td>
 
-        return `
-          <td>${money((e._tiers || [])[i] || 0)}</td>
-          <td class="profit${p < 0 ? ' neg' : ''}">${money(p)}</td>
-        `;
-      }).join('')}
-    </tr>
-  `).join('');
+        ${state.tiers.map((_, i) => {
+          const p = (e._profits || [])[i] || 0;
+
+          return `
+            <td>${money((e._tiers || [])[i] || 0)}</td>
+            <td class="profit${p < 0 ? ' neg' : ''}">${money(p)}</td>
+          `;
+        }).join('')}
+      </tr>
+    `;
+  }).join('');
 }
 
 /* =========================================================
@@ -2274,7 +2295,7 @@ scrollTopBtn.addEventListener('click', () => {
 });
 
 /* =========================================================
-   Keyboard: commit entry-name with Enter, plus global shortcuts
+   Keyboard
    ========================================================= */
 document.addEventListener('keydown', ev => {
   if (
