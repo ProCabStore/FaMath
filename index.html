@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quotation Calculator</title>
+<style>
+:root{
+  --ink:#17231f;--muted:#718078;--line:#e3eae5;--surface:#fff;--canvas:#f4f7f4;
+  --soft:#f7faf7;--green:#246b4b;--green-dark:#19543a;--green-pale:#e9f3ed;
+  --red:#b5473c;--red-pale:#fff1ef;--shadow:0 8px 28px rgba(26,52,38,.055);
+  --radius:16px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background:var(--canvas);color:var(--ink)}
+input,select,button{font:inherit;color:inherit}
+button{cursor:pointer;touch-action:manipulation}
+:focus-visible{outline:3px solid rgba(36,107,75,.22);outline-offset:2px}
+
+/* Header */
+.topbar{position:sticky;top:0;z-index:30;display:flex;flex-wrap:wrap;gap:12px 18px;align-items:center;
+  padding:14px clamp(14px,3vw,34px);background:rgba(255,255,255,.94);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);box-shadow:0 3px 16px rgba(25,50,35,.045)}
+.topbar h1{font-size:18px;font-weight:750;letter-spacing:-.035em;margin:0;white-space:nowrap}
+.search-wrap{position:relative;display:flex;align-items:center;flex:1 1 240px;min-width:0;max-width:440px}
+.search-wrap input{width:100%;min-height:42px;padding:9px 38px 9px 36px;border:1px solid var(--line);
+  border-radius:12px;background:#f7faf8;transition:.18s}
+.search-wrap input::-webkit-search-cancel-button,.search-wrap input::-webkit-search-decoration{-webkit-appearance:none;appearance:none}
+.search-wrap input:focus{outline:3px solid rgba(36,107,75,.12);border-color:#8eb49c;background:#fff}
+.search-icon{position:absolute;left:12px;font-size:14px;color:#84938a;pointer-events:none}
+.search-clear{position:absolute;right:5px;border:0;background:transparent;padding:7px 10px;color:#84938a;border-radius:8px}
+.search-clear:hover{background:#edf3ee;color:var(--ink)}
+.search-clear[hidden]{display:none}
+.actions{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-left:auto}
+button,.filebtn{min-height:38px;background:#fff;border:1px solid #dce5de;border-radius:10px;padding:8px 12px;
+  transition:background .16s,border-color .16s,transform .16s;white-space:nowrap}
+button:hover,.filebtn:hover{background:#f1f6f2;border-color:#c4d5c9}
+button:active{transform:translateY(1px)}
+button.primary{background:var(--green);border-color:var(--green);color:#fff;font-weight:650}
+button.primary:hover{background:var(--green-dark);border-color:var(--green-dark)}
+button.danger{color:var(--red);border-color:#f0d5d1}
+button.danger:hover{background:var(--red-pale)}
+.filebtn{display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+
+/* Main layout */
+.wrap{display:grid;grid-template-columns:minmax(270px,330px) minmax(0,1fr);gap:18px;
+  padding:22px clamp(12px,2.6vw,34px);max-width:1700px;margin:0 auto;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.panel h2{font-size:12px;text-transform:uppercase;letter-spacing:.095em;color:var(--muted);margin:0 0 10px;font-weight:750}
+.hint{font-size:12.5px;color:var(--muted);margin:-3px 0 14px;line-height:1.6}
+#catalog{position:sticky;top:90px;max-height:calc(100vh - 110px);overflow:auto;scrollbar-width:thin}
+.tier-panel,.summary{grid-column:1/-1}
+#entries{min-width:0}
+#tierGrid{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch}
+.tier-card{flex:1 1 190px;min-width:170px;border:1px solid var(--line);border-radius:13px;padding:12px;background:var(--soft)}
+.tier-card-head{display:flex;gap:7px;margin-bottom:9px;align-items:center}
+.tier-name-input{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-weight:700;background:#fff}
+.tier-name-input:focus,.tier-mult input:focus{outline:3px solid rgba(36,107,75,.12);border-color:#8eb49c}
+.del-tier{width:30px;height:30px;min-height:30px;padding:0;line-height:1;border-radius:8px;color:var(--red);border-color:#f0d5d1}
+.del-tier:disabled{opacity:.35;cursor:not-allowed}
+.tier-mult{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);margin-top:7px}
+.tier-mult input{width:76px;min-height:34px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;text-align:right;background:#fff;font-variant-numeric:tabular-nums}
+.add-tier{flex:0 0 auto;align-self:stretch;min-height:70px;border:1px dashed #a9c3b1;border-radius:13px;background:#f8fbf8;color:var(--green);padding:0 20px;font-weight:700}
+.add-tier:hover{background:var(--green-pale)}
+.apply-tier{margin-top:10px;width:100%;font-size:11.5px;padding:7px 8px;border-radius:8px;background:#edf5ef;border-color:#dce9df;color:var(--green)}
+
+/* Price list */
+.cat-block{margin-bottom:20px}
+.cat-block h3{font-size:13px;margin:0 0 10px;color:var(--green);display:flex;gap:7px;align-items:baseline}
+.cat-block h3 small{color:#8b9990;font-weight:500;font-size:10.5px}
+.cat-row{display:grid;grid-template-columns:minmax(0,1fr) 110px 34px;gap:6px;margin-bottom:7px;align-items:center}
+.cat-row input{min-height:36px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;width:100%;min-width:0;background:#fff}
+.cat-row input:focus,.items input:focus{outline:3px solid rgba(36,107,75,.12);border-color:#8eb49c}
+.cat-row input.cat-price{text-align:right;font-variant-numeric:tabular-nums}
+.cat-row button{padding:0;height:34px;min-height:34px;border-radius:8px;background:#eff6f0;border-color:#e0ebe2;color:var(--green);font-size:15px}
+.cat-row button.danger{color:var(--red);background:#fff;border-color:#f0d5d1}
+button.mini{font-size:12px;min-height:32px;padding:5px 11px;border-radius:9px;background:#eff6f0;border-color:#e0ebe2;color:var(--green);font-weight:650}
+
+/* Entries */
+.entry{background:#fff;border:1px solid var(--line);border-radius:var(--radius);margin-bottom:16px;overflow:hidden;
+  transition:border-color .18s,box-shadow .18s;box-shadow:var(--shadow);scroll-margin-top:100px}
+.entry.active{border-color:#8eb49c;box-shadow:0 0 0 3px rgba(36,107,75,.09),var(--shadow)}
+.entry-head{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:12px 15px;background:linear-gradient(110deg,#f6faf6,#fbfcfb);border-bottom:1px solid var(--line)}
+.entry-head .spacer{flex:1}
+.entry-head button{font-size:12px;min-height:34px;padding:6px 10px}
+.entry-name{font-weight:750;font-size:16px;letter-spacing:-.02em;border:1px solid transparent;background:transparent;
+  padding:6px 8px;border-radius:8px;width:170px;min-width:0}
+.entry-name:hover,.entry-name:focus{border-color:#d5e2d8;background:#fff;outline:none}
+.scroll,.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.scroll table.items{min-width:590px}
+.scroll table.tiers{min-width:650px}
+table.items{width:100%;border-collapse:collapse}
+.items th{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#78877e;text-align:left;
+  padding:11px 9px;border-bottom:1px solid var(--line);background:#fbfdfb;font-weight:750}
+.items td{padding:7px 9px;border-bottom:1px solid #f0f4f0;vertical-align:middle}
+.items tbody tr:last-child td{border-bottom:none}
+.items input{width:100%;min-height:36px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;min-width:0}
+.items input[type=number]{text-align:right;font-variant-numeric:tabular-nums}
+.items th:nth-child(1),.items td:nth-child(1){width:106px}
+.items th:nth-child(3),.items td:nth-child(3){width:104px}
+.items th:nth-child(4),.items td:nth-child(4){width:78px}
+.items th:nth-child(5),.items td:nth-child(5){width:80px}
+.items th:nth-child(6),.items td:nth-child(6){width:118px;text-align:right}
+.items th:nth-child(7),.items td:nth-child(7){width:42px}
+.items td.amt{text-align:right;font-weight:750;font-variant-numeric:tabular-nums;color:var(--green)}
+.items td .del{padding:0;width:30px;height:30px;min-height:30px;line-height:1;border-radius:8px;background:#fff;border-color:#f0d5d1;color:var(--red)}
+.items td.ro{color:#53635a;font-variant-numeric:tabular-nums}
+.items td.ro.price{text-align:right}
+.empty{color:#89968e;font-size:13px;padding:18px 8px!important;text-align:center}
+.entry-hint{padding:9px 14px;font-size:11.5px;color:#849188;border-top:1px solid #f0f4f0}
+.calc{padding:14px 15px;border-top:1px dashed #dce6de;background:#fbfdfb}
+.bases{display:flex;gap:10px 22px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:12px}
+.bases span{padding:6px 9px;background:#f2f6f2;border-radius:8px}
+.bases b{color:var(--ink);font-variant-numeric:tabular-nums;margin-left:4px}
+.bases .cost-total{background:#fff2ef;color:var(--red)}
+.bases .cost-total b{color:var(--red)}
+table.tiers{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.tiers th,.tiers td{padding:9px 10px;border-bottom:1px solid #edf2ed;font-size:12.5px;text-align:right}
+.tiers thead th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#849188;font-weight:750;border-bottom:1px solid #dfe8e1}
+.tiers th:first-child{text-align:left;color:#66766c;font-weight:600;font-size:12px;white-space:nowrap;min-width:205px}
+.tiers td{font-weight:700}
+.tiers td.total{color:var(--ink);font-weight:800;background:#f5f9f5}
+.tiers td.profit{color:#16804d}
+.tiers td.profit.neg{color:var(--red)}
+.tiers td.profit small{display:block;font-size:10px;color:#89968e;font-weight:500;margin-top:2px}
+.tmults{display:flex;gap:7px;margin-top:6px;font-size:10px;color:#89968e;font-weight:550}
+.tmults label{display:flex;align-items:center;gap:3px}
+.tmults input{width:45px;min-height:25px;padding:2px 4px;border:1px solid var(--line);border-radius:5px;text-align:right;
+  font-size:10px;font-variant-numeric:tabular-nums;background:#fff;color:var(--ink)}
+
+/* Search and summary */
+.search-status{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;
+  background:#edf5ef;border:1px solid #dce9df;color:#53635a;border-radius:11px;padding:10px 13px;margin-bottom:13px;font-size:12.5px}
+.search-status b{color:var(--green)}
+.sum-table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.sum-table th,.sum-table td{padding:10px 11px;border-bottom:1px solid #edf2ed;text-align:right;font-size:12.5px;white-space:nowrap}
+.sum-table thead th{font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#718078;background:#f8fbf8}
+.sum-table thead th[colspan]{text-align:center;color:var(--green);border-bottom:1px solid #dfe8e1}
+.sum-table thead th small{display:block;text-transform:none;letter-spacing:0;color:#89968e;font-weight:500;font-size:10px;margin-top:2px}
+.sum-table th:first-child,.sum-table td:first-child{text-align:left}
+.sum-table td.ename{font-weight:700}
+.sum-table td.cost{color:var(--red);font-weight:700}
+.sum-table td.profit{color:#16804d;font-weight:700}
+.sum-table td.profit.neg{color:var(--red)}
+.sum-table tfoot th{border-top:2px solid #dce6de;border-bottom:none;color:var(--ink);font-size:13px;padding-top:13px;background:#f8fbf8}
+.sum-table tfoot th:first-child,.sum-table tfoot th.profit{color:#16804d}
+.sum-table tfoot th.cost{color:var(--red)}
+.empty-state{text-align:center;color:var(--muted);padding:42px 20px}
+
+/* Tablet */
+@media(max-width:1050px){
+  .wrap{grid-template-columns:minmax(245px,300px) minmax(0,1fr);gap:13px}
+  .topbar{gap:10px}
+  .actions{margin-left:0}
+}
+/* Phone and small tablet */
+@media(max-width:760px){
+  .topbar{position:relative;padding:13px 14px;gap:10px}
+  .topbar h1{font-size:17px;flex:1 1 100%}
+  .search-wrap{order:2;flex:1 1 100%;max-width:none}
+  .actions{order:3;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;gap:7px}
+  .actions button,.actions .filebtn{width:100%;min-width:0;min-height:40px;justify-content:center;text-align:center;
+    padding:7px 6px;font-size:12px}
+  .wrap{display:flex;flex-direction:column;padding:13px;gap:13px}
+  #pricePage{padding:13px}
+  .tier-panel,.summary,#catalog,#entries{width:100%;min-width:0}
+  #catalog{position:static;max-height:none;overflow:visible}
+  .panel{padding:14px;border-radius:14px}
+  .tier-card{flex:1 1 calc(50% - 8px);min-width:140px}
+  .entry{scroll-margin-top:12px;border-radius:14px}
+  .entry-head{padding:10px 12px;gap:7px}
+  .entry-head .spacer{display:none}
+  .entry-name{width:100%;flex:1 1 100%;font-size:16px}
+  .entry-head button{flex:1 1 auto;min-height:38px;text-align:center}
+  .bases{gap:7px;margin-bottom:10px}
+  .bases span{flex:1 1 calc(50% - 7px);min-width:125px}
+  .calc{padding:12px}
+  .items th,.items td{padding:7px}
+  .tiers th,.tiers td{padding:8px}
+  .summary .table-scroll{margin:0 -4px}
+}
+/* Narrow phones */
+@media(max-width:420px){
+  body{font-size:13px}
+  .topbar h1{font-size:16px}
+  .actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .actions button,.actions .filebtn{font-size:12px}
+  .wrap{padding:10px;gap:10px}
+  #pricePage{padding:10px}
+  .panel{padding:12px}
+  .tier-card{flex:1 1 100%;min-width:0}
+  .add-tier{min-height:48px;width:100%}
+  .cat-row{grid-template-columns:minmax(0,1fr) 82px 34px;gap:5px}
+  .cat-row input{font-size:12px}
+  .entry-head button{font-size:11.5px;padding:6px}
+  .bases span{font-size:11.5px}
+}
+/* Separate Price List page + material picker */
+.page-nav{display:flex;gap:8px;align-items:center}
+.page-nav button[aria-current="page"]{background:var(--green-pale);border-color:#c9dfcf;color:var(--green);font-weight:750}
+#calculatorPage,#pricePage{min-width:0}
+#pricePage{display:none}
+#pricePage{padding:22px clamp(12px,2.6vw,34px);max-width:1700px;margin:0 auto}
+#pricePage .panel{max-width:1100px;margin:0 auto}
+#pricePage .cat-row{grid-template-columns:minmax(0,1fr) 120px 38px}
+#pricePage .cat-row .add-from-list{display:none}
+.entry-add-material{margin:12px 14px 0;display:flex;justify-content:flex-start}
+.entry-add-material button{background:var(--green-pale);border-color:#d4e6d8;color:var(--green);font-weight:700}
+.picker-backdrop{position:fixed;inset:0;z-index:80;background:rgba(15,28,21,.48);display:none;align-items:center;justify-content:center;padding:16px}
+.picker-backdrop.open{display:flex}
+.picker-dialog{width:min(680px,100%);max-height:min(82vh,760px);background:#fff;border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.22);display:flex;flex-direction:column;overflow:hidden}
+.picker-head{display:flex;align-items:center;gap:12px;padding:17px 18px;border-bottom:1px solid var(--line)}
+.picker-head h2{font-size:16px;margin:0;flex:1}
+.picker-search{padding:12px 16px;border-bottom:1px solid var(--line)}
+.picker-search input{width:100%;min-height:42px;border:1px solid var(--line);border-radius:10px;padding:9px 12px}
+.picker-list{padding:12px 16px 18px;overflow:auto}
+.picker-group{margin-bottom:16px}
+.picker-group h3{margin:0 0 8px;color:var(--green);font-size:12px;text-transform:uppercase;letter-spacing:.07em}
+.picker-item{display:flex;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid #f0f4f0}
+.picker-item:last-child{border-bottom:0}
+.picker-item .material-info{flex:1;min-width:0}
+.picker-item .material-name{font-weight:650;overflow-wrap:anywhere}
+.picker-item .material-price{font-size:12px;color:var(--muted);margin-top:2px}
+.picker-item button{min-width:72px;color:var(--green);font-weight:700}
+.picker-empty{padding:24px 8px;text-align:center;color:var(--muted)}
+@media(max-width:760px){
+  .page-nav{order:2;width:100%;display:grid;grid-template-columns:1fr 1fr}
+  .page-nav button{width:100%}
+  .picker-backdrop{padding:8px;align-items:flex-end}
+  .picker-dialog{max-height:88vh;border-radius:18px 18px 10px 10px}
+  .picker-head{padding:14px}
+  .picker-list{padding:10px 14px 18px}
+}
+@media print{
+  .topbar,#catalog,.search-status,.entry-head button,.entry-hint,.items th:nth-child(7),
+  .items td:nth-child(7),.del,.tier-panel,.apply-tier{display:none!important}
+  body{background:#fff}
+  .wrap{display:block;padding:0;max-width:none}
+  .entry,.panel{break-inside:avoid;border:1px solid #ccc;box-shadow:none;margin-bottom:12px}
+  .entry-name{width:auto}
+  .scroll{overflow:visible}
+  .scroll table.items,.scroll table.tiers{min-width:0}
+  .tmults input{border:none;background:transparent;padding:0}
+  .summary{page-break-before:always}
+}
+
+/* =========================================================
+   Responsive refinement: desktop, tablet and mobile
+   ========================================================= */
+:root{
+  --page-gutter:clamp(12px,2.4vw,32px);
+}
+body{min-width:320px}
+.topbar{gap:10px 16px}
+.topbar h1{flex:0 0 auto}
+.page-nav{flex:0 0 auto}
+.page-nav button{min-width:112px;font-weight:650}
+.actions{gap:7px}
+.wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  gap:16px;
+  width:100%;
+  max-width:1600px;
+  padding:20px var(--page-gutter) 36px;
+}
+.summary,.tier-panel,#entries{width:100%;min-width:0}
+.summary{order:0}
+.tier-panel{order:1}
+#entries{order:2}
+.panel{min-width:0}
+.summary .table-scroll{max-width:100%;border:1px solid var(--line);border-radius:11px}
+.sum-table{min-width:max-content}
+.sum-table th:first-child,.sum-table td:first-child{
+  position:sticky;left:0;z-index:1;background:#fff;
+  box-shadow:1px 0 0 var(--line);
+}
+.sum-table thead th:first-child{z-index:2;background:#f8fbf8}
+.sum-table tfoot th:first-child{z-index:2;background:#f8fbf8}
+.entry{width:100%;min-width:0}
+.entry-head{gap:8px}
+.entry-head .spacer{flex:1 1 auto}
+.entry-add-material{padding:0 14px}
+.entry-add-material button{min-height:40px;padding:8px 14px}
+.scroll{max-width:100%}
+.scroll table.items,.scroll table.tiers{min-width:650px}
+#pricePage{width:100%;padding:20px var(--page-gutter) 36px}
+#pricePage .panel{width:100%;max-width:1100px}
+#pricePage .cat-block{padding:14px;border:1px solid var(--line);border-radius:12px;background:#fbfdfb}
+#pricePage .cat-block h3{font-size:13px}
+#pricePage .cat-row{grid-template-columns:minmax(0,1fr) minmax(90px,130px) 38px;gap:8px}
+#pricePage .cat-row input{min-height:40px}
+#pricePage .cat-row button{min-width:38px}
+#pricePage .cat-block>.mini{min-height:38px}
+#calculatorPage,#pricePage{min-height:calc(100vh - 80px)}
+.picker-dialog{width:min(620px,100%);max-height:min(82dvh,760px)}
+.picker-list{overscroll-behavior:contain}
+.picker-item{min-height:58px}
+.picker-item button{min-height:38px}
+input,button,.filebtn{max-width:100%}
+
+/* Mid-sized screens */
+@media(max-width:1050px){
+  .topbar{padding:12px 18px}
+  .topbar h1{flex:1 1 100%}
+  .search-wrap{flex:1 1 260px;max-width:none}
+  .page-nav{margin-right:auto}
+  .actions{margin-left:0}
+  .tier-card{flex:1 1 210px}
+}
+
+/* Tablets and phones */
+@media(max-width:760px){
+  .topbar{
+    position:relative;
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:10px;
+    padding:13px 14px;
+  }
+  .topbar h1{font-size:17px;white-space:normal}
+  .search-wrap{order:0;width:100%;max-width:none}
+  .page-nav{
+    order:0;
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:7px;
+  }
+  .page-nav button{width:100%;min-width:0;min-height:42px}
+  .actions{
+    order:0;
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    width:100%;
+    margin:0;
+    gap:7px;
+  }
+  .actions button,.actions .filebtn{
+    width:100%;
+    min-width:0;
+    min-height:42px;
+    padding:7px 5px;
+    font-size:12px;
+    white-space:normal;
+    line-height:1.2;
+  }
+  .wrap{padding:12px 12px 28px;gap:12px}
+  .panel{padding:14px;border-radius:13px}
+  .summary .table-scroll{margin:0;max-width:100%}
+  .sum-table th,.sum-table td{padding:9px 10px;font-size:12px}
+  .tier-panel .hint{margin-bottom:12px}
+  #tierGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .tier-card{min-width:0;padding:10px}
+  .tier-mult{font-size:11.5px}
+  .tier-mult input{width:68px}
+  .add-tier{width:100%;min-height:58px;padding:8px}
+  .entry{margin-bottom:12px;border-radius:13px}
+  .entry-head{padding:11px;gap:7px}
+  .entry-name{width:100%;flex:1 1 100%;font-size:16px}
+  .entry-head .spacer{display:none}
+  .entry-head button{flex:1 1 calc(33.333% - 7px);min-width:0;min-height:38px;padding:6px;font-size:11.5px}
+  .scroll table.items{min-width:620px}
+  .scroll table.tiers{min-width:650px}
+  .entry-add-material{margin:10px 11px 0;padding:0}
+  .entry-add-material button{width:100%;justify-content:center}
+  .entry-hint{padding:8px 11px}
+  .calc{padding:11px}
+  .bases{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .bases span{min-width:0;padding:8px;font-size:11.5px}
+  #pricePage{padding:12px}
+  #pricePage .panel{padding:14px}
+  #pricePage .cat-block{padding:11px}
+  #pricePage .cat-row{grid-template-columns:minmax(0,1fr) 94px 36px;gap:6px}
+  .picker-backdrop{padding:8px;align-items:flex-end}
+  .picker-dialog{width:100%;max-height:88dvh;border-radius:18px 18px 10px 10px}
+}
+
+/* Small phones */
+@media(max-width:420px){
+  .topbar{padding:11px 10px;gap:9px}
+  .topbar h1{font-size:16px}
+  .actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .actions button,.actions .filebtn{font-size:11.5px}
+  .wrap{padding:9px 9px 24px;gap:10px}
+  .panel{padding:11px}
+  #tierGrid{grid-template-columns:minmax(0,1fr)}
+  .tier-card{padding:11px}
+  .tier-mult input{width:82px}
+  .entry-head button{font-size:11px}
+  .bases{grid-template-columns:minmax(0,1fr)}
+  #pricePage{padding:9px}
+  #pricePage .panel{padding:11px}
+  #pricePage .cat-row{grid-template-columns:minmax(0,1fr) 78px 34px;gap:5px}
+  #pricePage .cat-row input{padding:6px;font-size:12px}
+  .picker-head{padding:12px}
+  .picker-search{padding:10px 12px}
+  .picker-list{padding:9px 12px 16px}
+}
+
+/* Landscape phone / compact-height layouts */
+@media(max-width:760px) and (orientation:landscape){
+  .topbar{gap:8px}
+  .topbar h1{font-size:15px}
+  .picker-dialog{max-height:94dvh}
+}
+
+/* Respect reduced motion and keep print layout clean */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+}
+@media print{
+  .page-nav,.entry-add-material,#pricePage,.picker-backdrop{display:none!important}
+  .wrap{display:block;padding:0;max-width:none}
+  .summary .table-scroll{overflow:visible}
+  .sum-table th:first-child,.sum-table td:first-child{position:static;box-shadow:none}
+}
+
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <h1>🪵 Quotation Calculator</h1>
+
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input id="globalSearch" type="search" placeholder="Search entries or materials…  ( / )"
+           autocomplete="off" spellcheck="false" aria-label="Search entries and materials">
+    <button class="search-clear" id="searchClear" data-act="clear-search" title="Clear search" hidden>✕</button>
+  </div>
+
+  <nav class="page-nav" aria-label="Main sections">
+    <button type="button" data-page="calculator" aria-current="page">Calculator</button>
+    <button type="button" data-page="price">Price List</button>
+  </nav>
+
+  <div class="actions">
+    <button class="primary" data-act="add-entry">+ New Entry</button>
+    <button data-act="csv">Export CSV</button>
+    <button data-act="json">Save JSON</button>
+    <label class="filebtn">Load JSON<input type="file" id="fileInput" accept="application/json" hidden></label>
+    <button data-act="print">Print</button>
+    <button class="danger" data-act="reset">Reset</button>
+  </div>
+</header>
+
+<div id="calculatorPage">
+<div class="wrap">
+
+  <section class="panel summary">
+    <h2>Summary — full report (cost, price &amp; profit per tier)</h2>
+    <div class="table-scroll">
+      <table class="sum-table">
+        <thead id="summary-head"></thead>
+        <tbody id="summary-body"></tbody>
+        <tfoot id="summary-foot"></tfoot>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel tier-panel">
+    <h2>Tiers</h2>
+    <p class="hint">Global tier <b>names</b> and default multipliers. Each entry has its own copy of the multipliers —
+      edit them directly in the entry's tier table. Use <b>Apply to all entries</b> to push a default onto every entry.</p>
+    <div id="tierGrid"></div>
+  </section>
+
+  <section id="entries"></section>
+
+</div>
+</div>
+
+<section id="pricePage">
+  <div class="panel">
+    <h2>Material Price List</h2>
+    <p class="hint">Manage your saved materials and their unit prices here. To use a material in a product, open that product and tap <b>+ Add material</b>.</p>
+    <div id="catList"></div>
+  </div>
+</section>
+
+<div class="picker-backdrop" id="materialPicker" role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
+  <div class="picker-dialog">
+    <div class="picker-head">
+      <h2 id="pickerTitle">Select material</h2>
+      <button type="button" data-act="close-picker" aria-label="Close material picker">✕</button>
+    </div>
+    <div class="picker-search">
+      <input id="pickerSearch" type="search" placeholder="Search materials…" autocomplete="off">
+    </div>
+    <div class="picker-list" id="pickerList"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   Helpers
+   ========================================================= */
+const STORAGE_KEY = 'quote-calc-v5';
+const CATS = ['wood', 'accessory', 'other'];
+const CAT_LABEL = { wood: 'Wood', accessory: 'Accessory', other: 'Other custom' };
+const MULT_HINT = { wood: '×2 / 2.5 / 3 / 3.5', accessory: '×1.5 / 2 / 2.5 / 3', other: '×1.5 / 2 / 2.5 / 3' };
+
+const clone    = o => JSON.parse(JSON.stringify(o));
+const uid      = p => p + Math.random().toString(36).slice(2, 9);
+const num      = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+const round2   = n => Math.round((n + Number.EPSILON) * 100) / 100;
+const nf       = new Intl.NumberFormat('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money    = n => 'RM' + nf.format(round2(num(n)));
+const fmtMult  = n => String(Math.round(num(n) * 1000) / 1000);
+const esc      = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* =========================================================
+   Defaults
+   ========================================================= */
+const DEFAULT_CATALOG = {
+  wood: [
+    { name: 'Rubberwood 18mm', price: 185 },
+    { name: 'Rubberwood 16mm', price: 175 },
+    { name: 'Rubberwood 12mm', price: 152 },
+    { name: 'Pinewood 18mm',   price: 244 },
+    { name: 'Pinewood 15mm',   price: 234 },
+    { name: 'Pinewood 12mm',   price: 199 },
+    { name: 'Blockboard 18mm (one side)',  price: 0 },
+    { name: 'Blockboard 18mm (zero side)', price: 0 },
+    { name: 'Blockboard 15mm (two side)',  price: 0 },
+    { name: 'Blockboard 15mm (one side)',  price: 0 },
+    { name: 'Blockboard 15mm (zero side)', price: 0 },
+    { name: 'Plywood 3mm (one side)',      price: 0 }
+  ],
+  accessory: [
+    { name: 'Dowel', price: 1 },
+    { name: 'Undermount Soft Close', price: 18.5 },
+    { name: 'Undermount Non-Soft-Close', price: 18.5 },
+    { name: 'Handle', price: 2 },
+    { name: 'Leg', price: 0 },
+    { name: 'Plastic Leg', price: 1 }
+  ],
+  other: [
+    { name: 'Steel', price: 0 },
+    { name: 'Mirror', price: 0 }
+  ]
+};
+
+const DEFAULT_TIERS = [
+  { label: 'Tier 1', wood: 2.0, accessory: 1.5, other: 1.5 },
+  { label: 'Tier 2', wood: 2.5, accessory: 2.0, other: 2.0 },
+  { label: 'Tier 3', wood: 3.0, accessory: 2.5, other: 2.5 },
+  { label: 'Tier 4', wood: 3.5, accessory: 3.0, other: 3.0 }
+];
+
+const makeItem = (cat, desc, price, qty = 1, pct = 100) => ({ id: uid('i'), cat, desc, price, qty, pct });
+
+function sanitizeTiers(tiers) {
+  if (!Array.isArray(tiers) || !tiers.length) return clone(DEFAULT_TIERS);
+  return tiers.map((t, i) => ({
+    label: (t && t.label) || `Tier ${i + 1}`,
+    wood: num(t && t.wood),
+    accessory: num(t && t.accessory),
+    other: num(t && t.other)
+  }));
+}
+
+const multsFromTiers = tiers => tiers.map(t => ({
+  wood: num(t.wood), accessory: num(t.accessory), other: num(t.other)
+}));
+
+/* =========================================================
+   State
+   ========================================================= */
+let state = loadState() || seed();
+let searchQuery = '';
+
+function seed() {
+  const s = {
+    catalog: clone(DEFAULT_CATALOG),
+    tiers: clone(DEFAULT_TIERS),
+    entries: [],
+    nextNum: 1,
+    active: null
+  };
+  const add = (name, items) => s.entries.push({
+    id: uid('e'), name, items, tiers: multsFromTiers(s.tiers)
+  });
+
+  add('0001', [ makeItem('wood', 'Pinewood 18mm', 244, 1, 3.43) ]);
+
+  add('0002', [ makeItem('wood', 'Rubberwood 18mm', 185, 1, 12.72) ]);
+
+  add('0003', [
+    makeItem('wood', 'Rubberwood 18mm', 185, 1, 3.59),
+    makeItem('accessory', 'Dowel', 1, 5)
+  ]);
+
+  add('0004', [
+    makeItem('wood', 'Rubberwood 18mm', 185, 1, 12.00),
+    makeItem('accessory', 'Dowel', 1, 4)
+  ]);
+
+  add('0006', [
+    makeItem('wood', 'Pinewood 12mm', 199, 1, 12.38),
+    makeItem('wood', 'Pinewood 15mm', 234, 1, 14.11),
+    makeItem('wood', 'Pinewood 18mm', 244, 1, 43.57),
+    makeItem('accessory', 'Leg', 3, 4),
+    makeItem('accessory', 'Handle', 2, 2),
+    makeItem('accessory', 'Undermount Non-Soft-Close', 18.5, 2)
+  ]);
+
+  s.nextNum = 7;
+  return s;
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    if (!d || !Array.isArray(d.entries)) return null;
+
+    // Support migrating from the per-entry tier schema (v4)
+    const legacyEntryTiers = Array.isArray(d.entries) && d.entries.length && Array.isArray(d.entries[0].tiers)
+      ? d.entries[0].tiers
+      : null;
+
+    const tiers = Array.isArray(d.tiers) && d.tiers.length
+      ? sanitizeTiers(d.tiers)
+      : sanitizeTiers(legacyEntryTiers || DEFAULT_TIERS);
+
+    const entries = d.entries.map(e => {
+      const entry = {
+        id: e.id || uid('e'),
+        name: e.name || 'Entry',
+        items: (e.items || []).map(i => ({
+          id: i.id || uid('i'),
+          cat: i.cat || 'wood',
+          desc: i.desc || '',
+          price: num(i.price),
+          qty: num(i.qty) || 1,
+          pct: num(i.pct)
+        })),
+        tiers: Array.isArray(e.tiers)
+          ? e.tiers.map(t => ({ wood: num(t.wood), accessory: num(t.accessory), other: num(t.other) }))
+          : []
+      };
+      tiers.forEach((t, i) => {
+        if (!entry.tiers[i]) entry.tiers[i] = { wood: t.wood, accessory: t.accessory, other: t.other };
+      });
+      entry.tiers.length = tiers.length;
+      return entry;
+    });
+
+    return {
+      catalog: d.catalog || clone(DEFAULT_CATALOG),
+      tiers,
+      entries,
+      nextNum: d.nextNum || d.entries.length + 1,
+      active: null
+    };
+  } catch (e) { return null; }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      catalog: state.catalog,
+      tiers: state.tiers,
+      entries: state.entries,
+      nextNum: state.nextNum
+    }));
+  } catch (e) { /* ignore quota errors */ }
+}
+
+/* Make sure an entry has a full set of per-entry multipliers. */
+function ensureEntryTiers(entry) {
+  if (!Array.isArray(entry.tiers)) entry.tiers = [];
+  state.tiers.forEach((t, i) => {
+    const cur = entry.tiers[i];
+    if (!cur || typeof cur !== 'object') {
+      entry.tiers[i] = { wood: num(t.wood), accessory: num(t.accessory), other: num(t.other) };
+    } else {
+      cur.wood = num(cur.wood);
+      cur.accessory = num(cur.accessory);
+      cur.other = num(cur.other);
+    }
+  });
+  if (entry.tiers.length !== state.tiers.length) entry.tiers.length = state.tiers.length;
+}
+
+/* =========================================================
+   Rendering
+   ========================================================= */
+function renderAll() {
+  renderTiers();
+  renderCatalog();
+  renderEntries();
+  saveState();
+}
+
+function renderTiers() {
+  const grid = document.getElementById('tierGrid');
+  grid.innerHTML = state.tiers.map((t, i) => `
+    <div class="tier-card">
+      <div class="tier-card-head">
+        <input class="tier-name-input" data-tier-name-input="${i}" value="${esc(t.label)}" placeholder="Tier ${i + 1}">
+        <button class="del-tier" data-act="del-tier" data-idx="${i}" ${state.tiers.length <= 1 ? 'disabled title="At least one tier is required"' : 'title="Remove tier"'}>✕</button>
+      </div>
+      <label class="tier-mult">Wood
+        <input type="number" step="0.1" min="0" data-tier-mult="${i}" data-cat="wood" value="${fmtMult(t.wood)}">
+      </label>
+      <label class="tier-mult">Accessory
+        <input type="number" step="0.1" min="0" data-tier-mult="${i}" data-cat="accessory" value="${fmtMult(t.accessory)}">
+      </label>
+      <label class="tier-mult">Other
+        <input type="number" step="0.1" min="0" data-tier-mult="${i}" data-cat="other" value="${fmtMult(t.other)}">
+      </label>
+      <button class="apply-tier" data-act="apply-tier" data-idx="${i}" title="Copy these multipliers into every entry">↧ Apply to all entries</button>
+    </div>`).join('')
+    + `<button class="add-tier" data-act="add-tier">+ Add tier</button>`;
+}
+
+function renderCatalog() {
+  document.getElementById('catList').innerHTML = CATS.map(catBlockHTML).join('');
+}
+
+let pickerEntryId = null;
+
+function openMaterialPicker(entryId) {
+  pickerEntryId = entryId;
+  const entry = findEntry(entryId);
+  document.getElementById('pickerTitle').textContent =
+    `Add material to ${entry ? entry.name : 'product'}`;
+  document.getElementById('pickerSearch').value = '';
+  renderMaterialPicker('');
+  document.getElementById('materialPicker').classList.add('open');
+  document.getElementById('pickerSearch').focus();
+}
+
+function closeMaterialPicker() {
+  document.getElementById('materialPicker').classList.remove('open');
+  pickerEntryId = null;
+}
+
+function renderMaterialPicker(query) {
+  const q = String(query || '').trim().toLowerCase();
+  const list = document.getElementById('pickerList');
+  const groups = CATS.map(cat => {
+    const matches = state.catalog[cat].map((material, idx) => ({ material, idx }))
+      .filter(({ material }) => !q || material.name.toLowerCase().includes(q));
+    if (!matches.length) return '';
+    return `<section class="picker-group">
+      <h3>${CAT_LABEL[cat]}</h3>
+      ${matches.map(({ material, idx }) => `
+        <div class="picker-item">
+          <div class="material-info">
+            <div class="material-name">${esc(material.name)}</div>
+            <div class="material-price">${money(material.price)} / unit</div>
+          </div>
+          <button type="button" data-act="picker-add" data-cat="${cat}" data-idx="${idx}">＋ Add</button>
+        </div>`).join('')}
+    </section>`;
+  }).join('');
+  list.innerHTML = groups || `<div class="picker-empty">No materials found. Add it first in the Price List page.</div>`;
+}
+
+function switchPage(page) {
+  const calculator = page !== 'price';
+  document.getElementById('calculatorPage').style.display = calculator ? 'block' : 'none';
+  document.getElementById('pricePage').style.display = calculator ? 'none' : 'block';
+  document.querySelectorAll('[data-page]').forEach(button => {
+    if (button.dataset.page === (calculator ? 'calculator' : 'price')) {
+      button.setAttribute('aria-current', 'page');
+    } else {
+      button.removeAttribute('aria-current');
+    }
+  });
+  if (!calculator) renderCatalog();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function catBlockHTML(cat) {
+  const rows = state.catalog[cat].map((c, i) => `
+    <div class="cat-row">
+      <input data-cat-name="${cat}:${i}" value="${esc(c.name)}" aria-label="${CAT_LABEL[cat]} material name">
+      <input class="cat-price" type="number" step="0.01" data-cat-price="${cat}:${i}" value="${c.price}" aria-label="Unit price">
+      <button class="danger" data-act="del-cat" data-cat="${cat}" data-idx="${i}" title="Remove from list">✕</button>
+    </div>`).join('');
+  return `<div class="cat-block">
+      <h3>${CAT_LABEL[cat]} <small>${MULT_HINT[cat]}</small></h3>
+      ${rows}
+      <button class="mini" data-act="new-cat" data-cat="${cat}">+ New material</button>
+    </div>`;
+}
+
+function itemRowHTML(it) {
+  return `<tr>
+    <td class="ro">${esc(CAT_LABEL[it.cat] || it.cat)}</td>
+    <td class="ro">${esc(it.desc)}</td>
+    <td class="ro price">${money(it.price)}</td>
+    <td><input type="number" step="0.01" min="0" data-item="${it.id}" data-field="qty" value="${it.qty}"></td>
+    <td><input type="number" step="0.01" data-item="${it.id}" data-field="pct" value="${it.pct}"></td>
+    <td class="amt" data-amt="${it.id}">RM0.00</td>
+    <td><button class="del" data-act="del-item" data-item="${it.id}" title="Remove row">✕</button></td>
+  </tr>`;
+}
+
+function tierRowsHTML(entry) {
+  return state.tiers.map((t, i) => {
+    const m = entry.tiers[i] || { wood: 0, accessory: 0, other: 0 };
+    const inp = (cat, short) => `<label title="${CAT_LABEL[cat]} multiplier">${short}<input
+        type="number" step="0.1" min="0"
+        data-entry-tier="${entry.id}" data-idx="${i}" data-cat="${cat}"
+        value="${fmtMult(m[cat])}"></label>`;
+
+    return `<tr>
+      <th>
+        <span data-tier-name="${i}">${esc(t.label)}</span>
+        <span class="tmults">${inp('wood', 'W')}${inp('accessory', 'A')}${inp('other', 'O')}</span>
+      </th>
+      <td data-tier="${i}" data-cat="wood">RM0.00</td>
+      <td data-tier="${i}" data-cat="accessory">RM0.00</td>
+      <td data-tier="${i}" data-cat="other">RM0.00</td>
+      <td class="total" data-tier="${i}" data-cat="total">RM0.00</td>
+      <td class="profit" data-tier="${i}" data-cat="profit">RM0.00</td>
+    </tr>`;
+  }).join('');
+}
+
+function entryHTML(entry) {
+  const rows = entry.items.length
+    ? entry.items.map(itemRowHTML).join('')
+    : `<tr><td colspan="7" class="empty">No materials added to this product yet.</td></tr>`;
+
+  return `<article class="entry${state.active === entry.id ? ' active' : ''}" data-entry="${entry.id}">
+    <div class="entry-head">
+      <input class="entry-name" data-entry-name="${entry.id}" value="${esc(entry.name)}" placeholder="Entry name">
+      <div class="spacer"></div>
+      <button data-act="reset-entry-tiers" data-entry="${entry.id}" title="Reset this entry's tier multipliers to the global defaults">↺ Tiers</button>
+      <button data-act="dup-entry" data-entry="${entry.id}">⧉ Duplicate</button>
+      <button class="danger" data-act="del-entry" data-entry="${entry.id}">✕</button>
+    </div>
+
+    <div class="scroll">
+      <table class="items">
+        <thead><tr>
+          <th>Category</th><th>Description</th><th>Unit price</th><th>Qty</th><th>%</th><th>Amount</th><th></th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="entry-add-material">
+      <button type="button" data-act="open-picker" data-entry="${entry.id}">＋ Add material</button>
+    </div>
+    <div class="entry-hint">Choose materials from your saved Price List. Quantity and percentage can be edited here.</div>
+
+    <div class="calc">
+      <div class="bases">
+        <span>Wood base <b data-base="wood">RM0.00</b></span>
+        <span>Accessory base <b data-base="accessory">RM0.00</b></span>
+        <span>Other base <b data-base="other">RM0.00</b></span>
+        <span class="cost-total">Total cost <b data-base="total">RM0.00</b></span>
+      </div>
+      <div class="scroll">
+        <table class="tiers">
+          <thead><tr>
+            <th>Tier <small>W / A / O multiplier</small></th>
+            <th>Wood</th><th>Accessory</th><th>Other</th><th>Total</th><th>Profit</th>
+          </tr></thead>
+          <tbody>${tierRowsHTML(entry)}</tbody>
+        </table>
+      </div>
+    </div>
+  </article>`;
+}
+
+/* ---- global search ---- */
+function entryMatches(entry, q) {
+  if (!q) return true;
+  if (String(entry.name || '').toLowerCase().includes(q)) return true;
+  return entry.items.some(it =>
+    String(it.desc || '').toLowerCase().includes(q) ||
+    String(CAT_LABEL[it.cat] || it.cat || '').toLowerCase().includes(q)
+  );
+}
+
+function renderEntries() {
+  const el = document.getElementById('entries');
+  state.entries.forEach(ensureEntryTiers);
+  const q = searchQuery.trim().toLowerCase();
+
+  if (!state.entries.length) {
+    el.innerHTML = `<div class="panel empty-state">No entries yet. Click <b>+ New Entry</b> to start.</div>`;
+  } else {
+    const visible = state.entries.filter(e => entryMatches(e, q));
+    const status = q
+      ? `<div class="search-status">
+           <span>Showing <b>${visible.length}</b> of <b>${state.entries.length}</b> entries matching “${esc(searchQuery.trim())}”</span>
+           <button class="mini" data-act="clear-search">Clear search</button>
+         </div>`
+      : '';
+    const list = visible.length
+      ? visible.map(entryHTML).join('')
+      : `<div class="panel empty-state">No entries match “${esc(searchQuery.trim())}”.
+           <div style="margin-top:10px"><button class="mini" data-act="clear-search">Clear search</button></div>
+         </div>`;
+    el.innerHTML = status + list;
+  }
+  recalc();
+}
+
+/* =========================================================
+   Calculation + live DOM update
+   ========================================================= */
+function recalc() {
+  const grand = {
+    wood: 0, accessory: 0, other: 0, cost: 0,
+    tiers: state.tiers.map(() => ({ price: 0, profit: 0 }))
+  };
+
+  for (const entry of state.entries) {
+    ensureEntryTiers(entry);
+    const bases = { wood: 0, accessory: 0, other: 0 };
+
+    for (const it of entry.items) {
+      const amt = round2(num(it.price) * num(it.qty) * (num(it.pct) / 100));
+      it._amt = amt;
+      bases[it.cat] = (bases[it.cat] || 0) + amt;
+      const cell = document.querySelector(`[data-amt="${it.id}"]`);
+      if (cell) cell.textContent = money(amt);
+    }
+    bases.wood = round2(bases.wood);
+    bases.accessory = round2(bases.accessory);
+    bases.other = round2(bases.other);
+    entry._bases = bases;
+
+    const cost = round2(bases.wood + bases.accessory + bases.other);
+    entry._cost = cost;
+
+    const el = document.querySelector(`.entry[data-entry="${entry.id}"]`);
+
+    if (el) {
+      for (const c of CATS) {
+        const b = el.querySelector(`[data-base="${c}"]`);
+        if (b) b.textContent = money(bases[c]);
+      }
+      const bt = el.querySelector('[data-base="total"]');
+      if (bt) bt.textContent = money(cost);
+
+      // tier labels are global — keep them in sync without re-rendering
+      el.querySelectorAll('[data-tier-name]').forEach(span => {
+        const i = +span.dataset.tierName;
+        span.textContent = state.tiers[i]?.label || `Tier ${i + 1}`;
+      });
+    }
+
+    entry._tiers = [];
+    entry._profits = [];
+
+    state.tiers.forEach((t, i) => {
+      const m = entry.tiers[i] || t;
+      const w = round2(bases.wood * num(m.wood));
+      const a = round2(bases.accessory * num(m.accessory));
+      const o = round2(bases.other * num(m.other));
+      const tot = round2(w + a + o);
+      const profit = round2(tot - cost);
+
+      entry._tiers.push(tot);
+      entry._profits.push(profit);
+
+      grand.tiers[i].price = round2(grand.tiers[i].price + tot);
+      grand.tiers[i].profit = round2(grand.tiers[i].profit + profit);
+
+      if (el) {
+        setTierCell(el, i, 'wood', w);
+        setTierCell(el, i, 'accessory', a);
+        setTierCell(el, i, 'other', o);
+        setTierCell(el, i, 'total', tot);
+        setProfitCell(el, i, profit, tot);
+      }
+    });
+
+    grand.wood = round2(grand.wood + bases.wood);
+    grand.accessory = round2(grand.accessory + bases.accessory);
+    grand.other = round2(grand.other + bases.other);
+    grand.cost = round2(grand.cost + cost);
+  }
+
+  renderSummary(grand);
+}
+
+function setTierCell(el, i, cat, val) {
+  const cell = el.querySelector(`[data-tier="${i}"][data-cat="${cat}"]`);
+  if (cell) cell.textContent = money(val);
+}
+
+function setProfitCell(el, i, profit, total) {
+  const cell = el.querySelector(`[data-tier="${i}"][data-cat="profit"]`);
+  if (!cell) return;
+  const pct = total ? (profit / total) * 100 : 0;
+  cell.classList.toggle('neg', profit < 0);
+  cell.innerHTML = `${money(profit)}<small>${pct.toFixed(1)}% margin</small>`;
+}
+
+function renderSummary(grand) {
+  const head = document.getElementById('summary-head');
+  const body = document.getElementById('summary-body');
+  const foot = document.getElementById('summary-foot');
+  const cols = 5 + state.tiers.length * 2;
+
+  head.innerHTML = `<tr>
+      <th rowspan="2">Entry</th>
+      <th colspan="4">Cost</th>
+      ${state.tiers.map(t => `<th colspan="2">${esc(t.label)}</th>`).join('')}
+    </tr>
+    <tr>
+      <th>Wood</th><th>Accessory</th><th>Other</th><th>Total</th>
+      ${state.tiers.map(() => `<th>Price</th><th>Profit</th>`).join('')}
+    </tr>`;
+
+  if (!state.entries.length) {
+    body.innerHTML = `<tr><td colspan="${cols}" class="empty">No entries yet.</td></tr>`;
+  } else {
+    body.innerHTML = state.entries.map(e => `<tr>
+        <td class="ename">${esc(e.name)}</td>
+        <td>${money(e._bases?.wood || 0)}</td>
+        <td>${money(e._bases?.accessory || 0)}</td>
+        <td>${money(e._bases?.other || 0)}</td>
+        <td class="cost">${money(e._cost || 0)}</td>
+        ${state.tiers.map((_, i) => {
+          const p = (e._profits || [])[i] || 0;
+          return `<td>${money((e._tiers || [])[i] || 0)}</td>
+                  <td class="profit${p < 0 ? ' neg' : ''}">${money(p)}</td>`;
+        }).join('')}
+      </tr>`).join('');
+  }
+
+  foot.innerHTML = `<tr>
+      <th>Grand total</th>
+      <th>${money(grand.wood)}</th>
+      <th>${money(grand.accessory)}</th>
+      <th>${money(grand.other)}</th>
+      <th class="cost">${money(grand.cost)}</th>
+      ${grand.tiers.map(t => `<th>${money(t.price)}</th><th class="profit">${money(t.profit)}</th>`).join('')}
+    </tr>`;
+}
+
+/* =========================================================
+   Lookups
+   ========================================================= */
+const findEntry = id => state.entries.find(e => e.id === id);
+function findItem(id) {
+  for (const e of state.entries) {
+    const it = e.items.find(x => x.id === id);
+    if (it) return it;
+  }
+  return null;
+}
+
+function setActive(id) {
+  state.active = id;
+  document.querySelectorAll('.entry').forEach(el =>
+    el.classList.toggle('active', el.dataset.entry === id));
+  saveState();
+}
+
+/* =========================================================
+   Input handling (live, no re-render → keeps focus)
+   ========================================================= */
+function handleEdit(ev) {
+  const t = ev.target;
+
+  if (t.matches('[data-tier-name-input]')) {
+    const i = +t.dataset.tierNameInput;
+    if (!state.tiers[i]) return;
+    state.tiers[i].label = t.value.trim() || `Tier ${i + 1}`;
+    saveState();
+    recalc();
+    return;
+  }
+
+  if (t.matches('[data-tier-mult]')) {
+    const i = +t.dataset.tierMult, cat = t.dataset.cat;
+    if (!state.tiers[i] || !CATS.includes(cat)) return;
+    state.tiers[i][cat] = Math.max(0, num(t.value));
+    saveState();
+    return;
+  }
+
+  if (t.matches('[data-entry-tier]')) {
+    const e = findEntry(t.dataset.entryTier);
+    if (!e) return;
+    ensureEntryTiers(e);
+    const i = +t.dataset.idx, cat = t.dataset.cat;
+    if (!e.tiers[i] || !CATS.includes(cat)) return;
+    e.tiers[i][cat] = Math.max(0, num(t.value));
+    saveState();
+    recalc();
+    return;
+  }
+
+  if (t.matches('[data-entry-name]')) {
+    const e = findEntry(t.dataset.entryName);
+    if (e) { e.name = t.value; saveState(); recalc(); }
+    return;
+  }
+
+  if (t.matches('[data-item]')) {
+    const it = findItem(t.dataset.item);
+    if (!it) return;
+    const f = t.dataset.field;
+    if (f !== 'qty' && f !== 'pct') return; // only qty & % editable here
+    it[f] = num(t.value);
+    saveState();
+    recalc();
+    return;
+  }
+
+  if (t.matches('[data-cat-price]')) {
+    const [cat, idx] = t.dataset.catPrice.split(':');
+    state.catalog[cat][+idx].price = num(t.value);
+    saveState();
+    return;
+  }
+
+  if (t.matches('[data-cat-name]')) {
+    const [cat, idx] = t.dataset.catName.split(':');
+    state.catalog[cat][+idx].name = t.value;
+    saveState();
+  }
+}
+
+document.addEventListener('input', handleEdit);
+document.addEventListener('change', handleEdit);
+
+document.addEventListener('focusin', ev => {
+  const card = ev.target.closest('.entry');
+  if (card && state.active !== card.dataset.entry) setActive(card.dataset.entry);
+});
+
+/* =========================================================
+   Global search
+   ========================================================= */
+const searchInput = document.getElementById('globalSearch');
+const searchClear = document.getElementById('searchClear');
+
+function syncClearBtn() {
+  searchClear.hidden = !searchInput.value;
+}
+
+searchInput.addEventListener('input', () => {
+  searchQuery = searchInput.value;
+  syncClearBtn();
+  renderEntries();
+});
+
+function clearSearch() {
+  searchInput.value = '';
+  searchQuery = '';
+  syncClearBtn();
+  renderEntries();
+}
+
+document.addEventListener('keydown', ev => {
+  const tag = document.activeElement && document.activeElement.tagName;
+  const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+  if (ev.key === '/' && !typing) {
+    ev.preventDefault();
+    searchInput.focus();
+    searchInput.select();
+  } else if (ev.key === 'Escape' && document.activeElement === searchInput) {
+    clearSearch();
+    searchInput.blur();
+  }
+});
+
+/* =========================================================
+   Click actions
+   ========================================================= */
+document.addEventListener('click', ev => {
+  const pageButton = ev.target.closest('[data-page]');
+  if (pageButton) {
+    switchPage(pageButton.dataset.page);
+    return;
+  }
+  if (ev.target.id === 'materialPicker') {
+    closeMaterialPicker();
+    return;
+  }
+  const btn = ev.target.closest('[data-act]');
+  if (!btn) return;
+  const act = btn.dataset.act;
+
+  if (act === 'clear-search') {
+    clearSearch();
+    return;
+
+  } else if (act === 'add-tier') {
+    const last = state.tiers[state.tiers.length - 1] || { wood: 2, accessory: 1.5, other: 1.5 };
+    const fresh = {
+      label: `Tier ${state.tiers.length + 1}`,
+      wood: round2(num(last.wood) + 0.5),
+      accessory: round2(num(last.accessory) + 0.5),
+      other: round2(num(last.other) + 0.5)
+    };
+    state.tiers.push(fresh);
+    state.entries.forEach(e => {
+      ensureEntryTiers(e);
+      e.tiers.push({ wood: fresh.wood, accessory: fresh.accessory, other: fresh.other });
+    });
+    renderAll();
+
+  } else if (act === 'del-tier') {
+    if (state.tiers.length <= 1) return;
+    const idx = +btn.dataset.idx;
+    if (!state.tiers[idx]) return;
+    if (!confirm(`Remove "${state.tiers[idx].label}" from every entry?`)) return;
+    state.tiers.splice(idx, 1);
+    state.entries.forEach(e => {
+      ensureEntryTiers(e);
+      e.tiers.splice(idx, 1);
+    });
+    renderAll();
+
+  } else if (act === 'apply-tier') {
+    const i = +btn.dataset.idx;
+    const t = state.tiers[i];
+    if (!t) return;
+    state.entries.forEach(e => {
+      ensureEntryTiers(e);
+      e.tiers[i] = { wood: num(t.wood), accessory: num(t.accessory), other: num(t.other) };
+    });
+    renderEntries();
+    saveState();
+
+  } else if (act === 'reset-entry-tiers') {
+    const e = findEntry(btn.dataset.entry);
+    if (!e) return;
+    if (!confirm(`Reset tier multipliers of "${e.name}" to the global defaults?`)) return;
+    e.tiers = multsFromTiers(state.tiers);
+    renderEntries();
+    saveState();
+
+  } else if (act === 'add-entry') {
+    const e = {
+      id: uid('e'),
+      name: String(state.nextNum).padStart(4, '0'),
+      items: [],
+      tiers: multsFromTiers(state.tiers)
+    };
+    state.nextNum++;
+    state.entries.push(e);
+    state.active = e.id;
+    renderEntries();
+    saveState();
+    document.querySelector(`.entry[data-entry="${e.id}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  } else if (act === 'del-entry') {
+    const e = findEntry(btn.dataset.entry);
+    if (!e) return;
+    if (!confirm(`Delete entry "${e.name}"?`)) return;
+    state.entries = state.entries.filter(x => x.id !== e.id);
+    if (state.active === e.id) state.active = null;
+    renderEntries();
+    saveState();
+
+  } else if (act === 'dup-entry') {
+    const e = findEntry(btn.dataset.entry);
+    if (!e) return;
+    const copy = {
+      id: uid('e'),
+      name: String(state.nextNum).padStart(4, '0'),
+      items: e.items.map(i => ({ ...i, id: uid('i') })),
+      tiers: clone(e.tiers || multsFromTiers(state.tiers))
+    };
+    state.nextNum++;
+    state.entries.splice(state.entries.indexOf(e) + 1, 0, copy);
+    state.active = copy.id;
+    renderEntries();
+    saveState();
+
+  } else if (act === 'del-item') {
+    const id = btn.dataset.item;
+    for (const e of state.entries) {
+      const i = e.items.findIndex(x => x.id === id);
+      if (i > -1) { e.items.splice(i, 1); break; }
+    }
+    renderEntries();
+    saveState();
+
+  } else if (act === 'open-picker') {
+    openMaterialPicker(btn.dataset.entry);
+
+  } else if (act === 'picker-add') {
+    const entry = findEntry(pickerEntryId);
+    const material = state.catalog[btn.dataset.cat]?.[+btn.dataset.idx];
+    if (!material) return;
+    let target = entry;
+    if (!target) {
+      target = {
+        id: uid('e'),
+        name: String(state.nextNum).padStart(4, '0'),
+        items: [],
+        tiers: multsFromTiers(state.tiers)
+      };
+      state.nextNum++;
+      state.entries.push(target);
+    }
+    target.items.push(makeItem(btn.dataset.cat, material.name, material.price, 1, 100));
+    state.active = target.id;
+    renderEntries();
+    saveState();
+    document.getElementById('pickerTitle').textContent = `Add material to ${target.name}`;
+    document.querySelector(`.entry[data-entry="${target.id}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  } else if (act === 'close-picker') {
+    closeMaterialPicker();
+
+  } else if (act === 'del-cat') {
+    const { cat } = btn.dataset;
+    state.catalog[cat].splice(+btn.dataset.idx, 1);
+    renderCatalog();
+    saveState();
+
+  } else if (act === 'new-cat') {
+    state.catalog[btn.dataset.cat].push({ name: 'New material', price: 0 });
+    renderCatalog();
+    saveState();
+
+  } else if (act === 'print') {
+    window.print();
+
+  } else if (act === 'csv') {
+    exportCSV();
+
+  } else if (act === 'json') {
+    exportJSON();
+
+  } else if (act === 'reset') {
+    if (!confirm('Reset everything back to the default example data? This cannot be undone.')) return;
+    localStorage.removeItem(STORAGE_KEY);
+    state = seed();
+    clearSearch();
+    renderAll();
+  }
+});
+
+/* =========================================================
+   Export / import
+   ========================================================= */
+function download(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+const dateStamp = () => new Date().toISOString().slice(0, 10);
+
+function csvCell(v) {
+  const s = String(v ?? '');
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function exportCSV() {
+  const rows = [];
+  rows.push(['Entry', 'Category', 'Description', 'Unit price', 'Qty', '%', 'Amount']);
+  for (const e of state.entries) {
+    for (const it of e.items) {
+      rows.push([e.name, CAT_LABEL[it.cat], it.desc, num(it.price), num(it.qty), num(it.pct), round2(it._amt || 0)]);
+    }
+  }
+  rows.push([]);
+  rows.push(['Summary']);
+  rows.push(['Entry', 'Wood base', 'Accessory base', 'Other base', 'Total cost',
+    ...state.tiers.map(t => `${t.label} price`),
+    ...state.tiers.map(t => `${t.label} profit`)]);
+
+  const grand = state.tiers.map(() => 0);
+  const grandProfit = state.tiers.map(() => 0);
+  for (const e of state.entries) {
+    (e._tiers || []).forEach((v, i) => { grand[i] = round2(grand[i] + v); });
+    (e._profits || []).forEach((v, i) => { grandProfit[i] = round2(grandProfit[i] + v); });
+    rows.push([e.name,
+      round2(e._bases?.wood || 0), round2(e._bases?.accessory || 0), round2(e._bases?.other || 0),
+      round2(e._cost || 0),
+      ...(e._tiers || []).map(v => round2(v)),
+      ...(e._profits || []).map(v => round2(v))]);
+  }
+  const costTotal = round2(state.entries.reduce((s, e) => s + (e._cost || 0), 0));
+  rows.push(['Grand total', '', '', '', costTotal,
+    ...grand.map(v => round2(v)), ...grandProfit.map(v => round2(v))]);
+
+  const csv = '\uFEFF' + rows.map(r => r.map(csvCell).join(',')).join('\r\n');
+  download(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `quotation-${dateStamp()}.csv`);
+}
+
+function exportJSON() {
+  const data = {
+    catalog: state.catalog,
+    tiers: state.tiers,
+    entries: state.entries.map(e => ({
+      name: e.name,
+      tiers: e.tiers,
+      items: e.items.map(i => ({ cat: i.cat, desc: i.desc, price: i.price, qty: i.qty, pct: i.pct }))
+    })),
+    nextNum: state.nextNum
+  };
+  download(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
+    `quotation-${dateStamp()}.json`);
+}
+
+document.getElementById('fileInput').addEventListener('change', ev => {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const d = JSON.parse(reader.result);
+      if (!Array.isArray(d.entries)) throw new Error('Bad file');
+      state.catalog = d.catalog || clone(DEFAULT_CATALOG);
+      state.tiers = sanitizeTiers(d.tiers);
+      state.entries = d.entries.map(e => {
+        const entry = {
+          id: uid('e'),
+          name: e.name || 'Entry',
+          items: (e.items || []).map(i => ({
+            id: uid('i'), cat: i.cat || 'wood', desc: i.desc || '',
+            price: num(i.price), qty: num(i.qty) || 1, pct: num(i.pct)
+          })),
+          tiers: Array.isArray(e.tiers)
+            ? e.tiers.map(t => ({ wood: num(t.wood), accessory: num(t.accessory), other: num(t.other) }))
+            : multsFromTiers(state.tiers)
+        };
+        ensureEntryTiers(entry);
+        return entry;
+      });
+      state.nextNum = d.nextNum || state.entries.length + 1;
+      state.active = null;
+      renderAll();
+    } catch (err) {
+      alert('Could not read that file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  ev.target.value = '';
+});
+
+document.getElementById('pickerSearch').addEventListener('input', ev => {
+  renderMaterialPicker(ev.target.value);
+});
+
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape' && document.getElementById('materialPicker').classList.contains('open')) {
+    closeMaterialPicker();
+  }
+});
+
+/* =========================================================
+   Go
+   ========================================================= */
+renderAll();
+</script>
+</body>
+</html>
