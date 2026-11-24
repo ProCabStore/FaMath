@@ -1004,7 +1004,9 @@ function renderEntries() {
   if (!state.entries.length) {
     el.innerHTML = `<div class="panel empty-state">No entries yet. Click <b>+ New Entry</b> to start.</div>`;
   } else {
-    const visible = state.entries.filter(e => entryMatches(e, q));
+    const visible = state.entries
+      .filter(e => entryMatches(e, q))
+      .sort((a, b) => Number(b.name) - Number(a.name));
     const status = q
       ? `<div class="search-status">
            <span>Showing <b>${visible.length}</b> of <b>${state.entries.length}</b> entries matching “${esc(searchQuery.trim())}”</span>
