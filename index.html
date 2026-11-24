@@ -419,12 +419,66 @@ input,button,.filebtn{max-width:100%}
   .sum-table th:first-child,.sum-table td:first-child{position:static;box-shadow:none}
 }
 
+
+
+/* =========================================================
+   Preview-only mode + developer unlock
+   ========================================================= */
+.mode-indicator{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;
+  background:#eef3ef;border:1px solid #dce7df;color:#53635a;font-size:11px;font-weight:750;
+  letter-spacing:.025em;white-space:nowrap
+}
+.developer-button{font-weight:700;border-color:#cbd9cf;background:#f8fbf8;color:var(--green)}
+.developer-backdrop{
+  position:fixed;inset:0;z-index:100;background:rgba(15,28,21,.56);display:none;
+  align-items:center;justify-content:center;padding:16px
+}
+.developer-backdrop.open{display:flex}
+.developer-dialog{
+  width:min(420px,100%);background:#fff;border:1px solid var(--line);border-radius:18px;
+  padding:22px;box-shadow:0 24px 80px rgba(0,0,0,.24)
+}
+.developer-dialog h2{margin:0 0 5px;font-size:18px;letter-spacing:-.02em}
+.developer-dialog p{margin:0 0 17px;color:var(--muted);font-size:13px}
+.developer-dialog label{display:block;margin-bottom:6px;font-weight:700;font-size:12px;color:#53635a}
+.developer-dialog input{
+  display:block;width:100%;min-height:44px;padding:9px 12px;border:1px solid var(--line);
+  border-radius:10px;background:#fff
+}
+.developer-dialog input:focus{outline:3px solid rgba(36,107,75,.12);border-color:#8eb49c}
+.developer-error{min-height:20px;margin:7px 0 0!important;color:var(--red)!important;font-size:12px!important}
+.developer-dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:13px}
+.developer-dialog-actions button{min-width:92px}
+body.preview-mode .actions [data-act]:not([data-act="print"]){display:none!important}
+body.preview-mode .actions .filebtn{display:none!important}
+body.preview-mode #calculatorPage .entry-head button,
+body.preview-mode #calculatorPage .entry-add-material,
+body.preview-mode #calculatorPage .items td button,
+body.preview-mode #calculatorPage .tier-card .del-tier,
+body.preview-mode #calculatorPage .tier-card .apply-tier,
+body.preview-mode #calculatorPage .tier-panel .add-tier,
+body.preview-mode #pricePage #catList .cat-row button,
+body.preview-mode #pricePage #catList .cat-block>.mini{display:none!important}
+body.preview-mode #calculatorPage .items th:nth-child(7),
+body.preview-mode #calculatorPage .items td:nth-child(7){display:none!important}
+body.preview-mode #pricePage #catList .cat-row{grid-template-columns:minmax(0,1fr) minmax(90px,130px)!important}
+body.preview-mode #calculatorPage input:not(#globalSearch),
+body.preview-mode #pricePage input{
+  background:#f7faf7!important;color:#53635a;cursor:default
+}
+@media(max-width:760px){
+  .developer-dialog{padding:19px}
+  .developer-dialog-actions button{flex:1}
+}
+
 </style>
 </head>
 <body>
 
 <header class="topbar">
   <h1>🪵 Quotation Calculator</h1>
+  <span class="mode-indicator" id="modeIndicator" aria-live="polite">PREVIEW ONLY</span>
 
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
@@ -439,6 +493,7 @@ input,button,.filebtn{max-width:100%}
   </nav>
 
   <div class="actions">
+    <button type="button" class="developer-button" id="developerBtn">🔒 Developer</button>
     <button class="primary" data-act="add-entry">+ New Entry</button>
     <button data-act="csv">Export CSV</button>
     <button data-act="json">Save JSON</button>
@@ -493,6 +548,21 @@ input,button,.filebtn{max-width:100%}
     </div>
     <div class="picker-list" id="pickerList"></div>
   </div>
+</div>
+
+<div class="developer-backdrop" id="developerModal" role="dialog" aria-modal="true" aria-labelledby="developerTitle">
+  <form class="developer-dialog" id="developerForm">
+    <h2 id="developerTitle">Developer access</h2>
+    <p>Enter the developer password to enable editing.</p>
+    <label for="developerPassword">Password</label>
+    <input id="developerPassword" type="password" inputmode="numeric" autocomplete="current-password"
+           placeholder="Enter developer password" required>
+    <p class="developer-error" id="developerError" role="alert" aria-live="polite"></p>
+    <div class="developer-dialog-actions">
+      <button type="button" id="cancelDeveloper">Cancel</button>
+      <button type="submit" class="primary">Unlock editing</button>
+    </div>
+  </form>
 </div>
 
 <script>
@@ -573,6 +643,45 @@ const multsFromTiers = tiers => tiers.map(t => ({
    ========================================================= */
 let state = loadState() || seed();
 let searchQuery = '';
+
+// Convenience gate for this static page. A password embedded in client-side code
+// is not secure authentication; use server-side authentication for real protection.
+const DEVELOPER_PASSWORD = '147896';
+let developerMode = false;
+
+function syncEditorMode() {
+  const locked = !developerMode;
+  document.body.classList.toggle('preview-mode', locked);
+  document.getElementById('modeIndicator').textContent = locked ? 'PREVIEW ONLY' : 'DEVELOPER MODE';
+  const developerBtn = document.getElementById('developerBtn');
+  developerBtn.textContent = locked ? '🔒 Developer' : '🔓 Lock';
+  developerBtn.setAttribute('aria-label', locked ? 'Unlock developer editing' : 'Lock editing and return to preview');
+
+  document.querySelectorAll('#calculatorPage input:not(#globalSearch), #pricePage input').forEach(input => {
+    input.readOnly = locked;
+    input.setAttribute('aria-readonly', String(locked));
+  });
+  const fileInput = document.getElementById('fileInput');
+  if (fileInput) fileInput.disabled = locked;
+}
+
+function setDeveloperMode(enabled) {
+  developerMode = Boolean(enabled);
+  if (!developerMode) closeMaterialPicker();
+  syncEditorMode();
+}
+
+function openDeveloperModal() {
+  const modal = document.getElementById('developerModal');
+  document.getElementById('developerPassword').value = '';
+  document.getElementById('developerError').textContent = '';
+  modal.classList.add('open');
+  document.getElementById('developerPassword').focus();
+}
+
+function closeDeveloperModal() {
+  document.getElementById('developerModal').classList.remove('open');
+}
 
 function seed() {
   const s = {
@@ -696,6 +805,7 @@ function renderAll() {
   renderTiers();
   renderCatalog();
   renderEntries();
+  syncEditorMode();
   saveState();
 }
 
@@ -723,6 +833,7 @@ function renderTiers() {
 
 function renderCatalog() {
   document.getElementById('catList').innerHTML = CATS.map(catBlockHTML).join('');
+  syncEditorMode();
 }
 
 let pickerEntryId = null;
@@ -907,6 +1018,7 @@ function renderEntries() {
          </div>`;
     el.innerHTML = status + list;
   }
+  syncEditorMode();
   recalc();
 }
 
@@ -1069,6 +1181,7 @@ function setActive(id) {
    Input handling (live, no re-render → keeps focus)
    ========================================================= */
 function handleEdit(ev) {
+  if (!developerMode) return;
   const t = ev.target;
 
   if (t.matches('[data-tier-name-input]')) {
@@ -1135,6 +1248,7 @@ document.addEventListener('input', handleEdit);
 document.addEventListener('change', handleEdit);
 
 document.addEventListener('focusin', ev => {
+  if (!developerMode) return;
   const card = ev.target.closest('.entry');
   if (card && state.active !== card.dataset.entry) setActive(card.dataset.entry);
 });
@@ -1192,6 +1306,10 @@ document.addEventListener('click', ev => {
   const btn = ev.target.closest('[data-act]');
   if (!btn) return;
   const act = btn.dataset.act;
+
+  // In preview mode only search and print are available. All data-changing actions
+  // are ignored even if a hidden control is triggered from the browser UI.
+  if (!developerMode && act !== 'clear-search' && act !== 'print') return;
 
   if (act === 'clear-search') {
     clearSearch();
@@ -1416,6 +1534,7 @@ function exportJSON() {
 }
 
 document.getElementById('fileInput').addEventListener('change', ev => {
+  if (!developerMode) { ev.target.value = ''; return; }
   const file = ev.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -1455,16 +1574,45 @@ document.getElementById('pickerSearch').addEventListener('input', ev => {
   renderMaterialPicker(ev.target.value);
 });
 
-document.addEventListener('keydown', ev => {
-  if (ev.key === 'Escape' && document.getElementById('materialPicker').classList.contains('open')) {
-    closeMaterialPicker();
+const developerBtn = document.getElementById('developerBtn');
+developerBtn.addEventListener('click', () => {
+  if (developerMode) {
+    setDeveloperMode(false);
+  } else {
+    openDeveloperModal();
   }
+});
+
+document.getElementById('developerForm').addEventListener('submit', ev => {
+  ev.preventDefault();
+  const entered = document.getElementById('developerPassword').value;
+  if (entered === DEVELOPER_PASSWORD) {
+    closeDeveloperModal();
+    setDeveloperMode(true);
+  } else {
+    document.getElementById('developerError').textContent = 'Incorrect password. Please try again.';
+    const input = document.getElementById('developerPassword');
+    input.focus();
+    input.select();
+  }
+});
+
+document.getElementById('cancelDeveloper').addEventListener('click', closeDeveloperModal);
+document.getElementById('developerModal').addEventListener('click', ev => {
+  if (ev.target.id === 'developerModal') closeDeveloperModal();
+});
+
+document.addEventListener('keydown', ev => {
+  if (ev.key !== 'Escape') return;
+  if (document.getElementById('materialPicker').classList.contains('open')) closeMaterialPicker();
+  if (document.getElementById('developerModal').classList.contains('open')) closeDeveloperModal();
 });
 
 /* =========================================================
    Go
    ========================================================= */
 renderAll();
+setDeveloperMode(false);
 </script>
 </body>
 </html>
